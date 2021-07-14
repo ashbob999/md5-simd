@@ -1,0 +1,86 @@
+﻿{
+	"configurations": [
+		{
+			"name": "x64-Debug (default)",
+			"generator": "Ninja",
+			"configurationType": "Debug",
+			"inheritEnvironments": [ "msvc_x64_x64" ],
+			"buildRoot": "${projectDir}\\msvc\\build\\${name}",
+			"installRoot": "${projectDir}\\msvc\\${name}",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"variables": [
+				{
+					"name": "CMAKE_CXX_FLAGS_DEBUG",
+					"value": "/Zi /Ob0 /Od /RTC1 /Wall /arch:AVX2 /Qpar /favor:INTEL64",
+					"type": "STRING"
+				}
+			],
+			"intelliSenseMode": "windows-msvc-x64"
+		},
+		{
+			"name": "x64-Release",
+			"generator": "Ninja",
+			"configurationType": "Release",
+			"buildRoot": "${projectDir}\\msvc\\build\\${name}",
+			"installRoot": "${projectDir}\\msvc\\${name}",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"inheritEnvironments": [ "msvc_x64_x64" ],
+			"variables": [
+				{
+					"name": "CMAKE_CXX_FLAGS_RELEASE",
+					"value": "/O2 /Ob2 /GL /Ob3 /Wall /arch:AVX2 /Qpar /favor:INTEL64",
+					"type": "STRING"
+				}
+			],
+			"intelliSenseMode": "windows-msvc-x64"
+		},
+		{
+			"name": "WSL-GCC-Debug",
+			"generator": "Unix Makefiles",
+			"configurationType": "Debug",
+			"buildRoot": "${projectDir}\\wsl\\build\\${name}",
+			"installRoot": "${projectDir}\\wsl\\install\\${name}",
+			"cmakeExecutable": "cmake",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"inheritEnvironments": [ "linux_x64" ],
+			"wslPath": "${defaultWSLPath}",
+			"addressSanitizerRuntimeFlags": "detect_leaks=0",
+			"variables": [
+				{
+					"name": "CMAKE_CXX_FLAGS_DEBUG",
+					"value": "-Wall -m64 -march=native -ggdb",
+					"type": "STRING"
+				}
+			],
+			"intelliSenseMode": "linux-gcc-x64"
+		},
+		{
+			"name": "WSL-GCC-Release",
+			"generator": "Unix Makefiles",
+			"configurationType": "Release",
+			"buildRoot": "${projectDir}\\wsl\\build\\${name}",
+			"installRoot": "${projectDir}\\wsl\\install\\${name}",
+			"cmakeExecutable": "cmake",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"inheritEnvironments": [ "linux_x64" ],
+			"wslPath": "${defaultWSLPath}",
+			"addressSanitizerRuntimeFlags": "detect_leaks=0",
+			"variables": [
+				{
+					"name": "CMAKE_CXX_FLAGS_RELEASE",
+					"value": "-O3 -Wall -m64 -march=native",
+					"type": "STRING"
+				}
+			],
+			"intelliSenseMode": "linux-gcc-x64"
+		}
+	]
+}
