@@ -1,8 +1,6 @@
 
 #include "md5-simd.h"
 
-#include <stdexcept>
-
 inline __m128i MD5_SIMD::F(__m128i a, __m128i b, __m128i c, __m128i d)
 {
 	return _mm_xor_si128(d, _mm_and_si128(b, _mm_xor_si128(c, d)));
@@ -65,6 +63,8 @@ MD5_SIMD::MD5_SIMD(uint64_t buffer_size)
 		throw std::runtime_error("Buffer Size must be greater then zero, and a multiple of 64");
 	}
 
+	input_buffer_size = buffer_size;
+
 	init();
 }
 
@@ -80,16 +80,9 @@ void MD5_SIMD::init()
 {
 	finalized = false;
 
-	//count[0] = 0;
-	//count[1] = 0;
-	count = 0;//count = _mm_setzero_si128();
+	count = 0;
 
 	// load magic initialization constants.
-	//state[0] = 0x67452301;
-	//state[1] = 0xefcdab89;
-	//state[2] = 0x98badcfe;
-	//state[3] = 0x10325476;
-	//state = _mm_setr_epi32(0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476);
 	state[0] = _mm_set1_epi32(0x67452301);
 	state[1] = _mm_set1_epi32(0xefcdab89);
 	state[2] = _mm_set1_epi32(0x98badcfe);
@@ -111,160 +104,6 @@ void MD5_SIMD::init()
 	input_buffers[1] = new unsigned char[input_buffer_size];
 	input_buffers[2] = new unsigned char[input_buffer_size];
 	input_buffers[3] = new unsigned char[input_buffer_size];
-}
-
-void MD5_SIMD::calculate(const std::string text[HASH_COUNT])
-{
-	reset();
-
-	// check length
-	uint64_t index = text[0].length() / 64;
-	uint64_t offset = text[0].length() % 64;
-	if (offset >= 56)
-	{
-		index++;
-	}
-
-	for (int i = 1; i < 4; i++)
-	{
-		uint64_t tmp_index = (text[i].length() / 64) + (text[i].length() % 64 < 56 ? 0 : 1);
-		if (index != tmp_index)
-		{
-			throw "Lengths must be similar lengths";
-		}
-	}
-
-	uint64_t total_chars = index * 64 + 64;
-	if (total_chars > input_buffer_size)
-	{
-		delete[] input_buffers[0];
-		delete[] input_buffers[1];
-		delete[] input_buffers[2];
-		delete[] input_buffers[3];
-
-		input_buffers[0] = new unsigned char[total_chars];
-		input_buffers[1] = new unsigned char[total_chars];
-		input_buffers[2] = new unsigned char[total_chars];
-		input_buffers[3] = new unsigned char[total_chars];
-	}
-
-	//pair p0 = resize(text[0].c_str(), text[0].length());
-	//pair p1 = resize(text[1].c_str(), text[1].length());
-	//pair p2 = resize(text[2].c_str(), text[2].length());
-	//pair p3 = resize(text[3].c_str(), text[3].length());
-	pad_input(text[0].c_str(), text[0].length(), 0);
-	pad_input(text[1].c_str(), text[1].length(), 1);
-	pad_input(text[2].c_str(), text[2].length(), 2);
-	pad_input(text[3].c_str(), text[3].length(), 3);
-
-	//unsigned char* arr[4] = { p0.str, p1.str, p2.str, p3.str };
-
-	update(input_buffers, total_chars);
-	finalize();
-
-	//delete p0.str, p1.str, p2.str, p3.str;
-}
-
-void MD5_SIMD::calculate(char* text[HASH_COUNT], uint64_t length[HASH_COUNT])
-{
-	reset();
-
-	// check length
-	uint64_t index = length[0] / 64;
-	uint64_t offset = length[0] % 64;
-	if (offset >= 56)
-	{
-		index++;
-	}
-
-	for (int i = 1; i < 4; i++)
-	{
-		uint64_t tmp_index = (length[i] / 64) + (length[i] % 64 < 56 ? 0 : 1);
-		if (index != tmp_index)
-		{
-			throw std::runtime_error("Lengths must be similar");
-		}
-	}
-
-	uint64_t total_chars = index * 64 + 64;
-	if (total_chars > input_buffer_size)
-	{
-		delete[] input_buffers[0];
-		delete[] input_buffers[1];
-		delete[] input_buffers[2];
-		delete[] input_buffers[3];
-
-		input_buffers[0] = new unsigned char[total_chars];
-		input_buffers[1] = new unsigned char[total_chars];
-		input_buffers[2] = new unsigned char[total_chars];
-		input_buffers[3] = new unsigned char[total_chars];
-	}
-
-	//pair p0 = resize(text[0], length[0]);
-	//pair p1 = resize(text[1], length[1]);
-	//pair p2 = resize(text[2], length[2]);
-	//pair p3 = resize(text[3], length[3]);
-	pad_input(text[0], length[0], 0);
-	pad_input(text[1], length[1], 1);
-	pad_input(text[2], length[2], 2);
-	pad_input(text[3], length[3], 3);
-
-	//unsigned char* arr[4] = {, p1.str, p2.str, p3.str };
-
-	update(input_buffers, total_chars);
-	finalize();
-
-	//delete p0.str, p1.str, p2.str, p3.str;
-}
-
-void MD5_SIMD::calculate(const char* text[HASH_COUNT], uint64_t length[HASH_COUNT])
-{
-	// reset data
-	reset();
-
-	// get number of 64-char chunks the input will make
-	uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
-
-	// check the other inputs to make sure they use the same number of 64-char chunks
-	for (int i = 1; i < 4; i++)
-	{
-		uint64_t tmp_index = (length[i] / 64) + (length[i] % 64 < 56 ? 0 : 1);
-		if (index != tmp_index)
-		{
-			throw std::runtime_error("Lengths must be similar");
-		}
-	}
-
-	// calculate how many chars the inputs will each require (they should all require the same)
-	uint64_t total_chars = index * 64 + 64;
-
-	// expand the input buffers if they are not big enough
-	if (total_chars > input_buffer_size)
-	{
-		delete[] input_buffers[0];
-		delete[] input_buffers[1];
-		delete[] input_buffers[2];
-		delete[] input_buffers[3];
-
-		input_buffers[0] = new unsigned char[total_chars];
-		input_buffers[1] = new unsigned char[total_chars];
-		input_buffers[2] = new unsigned char[total_chars];
-		input_buffers[3] = new unsigned char[total_chars];
-	}
-
-	// pad each input
-	pad_input(text[0], length[0], 0);
-	pad_input(text[1], length[1], 1);
-	pad_input(text[2], length[2], 2);
-	pad_input(text[3], length[3], 3);
-
-	//unsigned char* arr[4] = {, p1.str, p2.str, p3.str };
-
-	// update the state
-	update(input_buffers, total_chars);
-
-	// finish the md5 calculation
-	finalize();
 }
 
 void MD5_SIMD::reset()
@@ -296,7 +135,7 @@ void MD5_SIMD::reset()
 	digest[3] = _mm_setzero_si128();
 }
 
-inline void MD5_SIMD::pad_input(const char* text, uint64_t length, int idx)
+void MD5_SIMD::pad_input(const char* text, uint64_t length, int idx)
 {
 	// get size of padding
 	uint64_t index = length % 64;
@@ -467,7 +306,7 @@ void MD5_SIMD::transform(const __m128i block[HASH_COUNT][4])
 	state[3] = _mm_add_epi32(state[3], d);
 }
 
-inline void MD5_SIMD::finalize()
+void MD5_SIMD::finalize()
 {
 	static unsigned char padding[64] = {
 	  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -500,7 +339,7 @@ inline void MD5_SIMD::finalize()
 
 inline void MD5_SIMD::decode(__m128i output[16], const __m128i input[HASH_COUNT][4], uint64_t len)
 {
-	// 64 x 8-bits => 16 x 32-bits
+	// 64 x 8-bits => 16 x 32-bits for each hash
 
 	int* data = (int*) &input[0];
 

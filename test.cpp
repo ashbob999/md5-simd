@@ -60,7 +60,7 @@ bool test_simd()
 	const char* arr[4] = { text, text, text, text };
 	uint64_t lengths[4] = { TEST_STRING_LENGTH, TEST_STRING_LENGTH, TEST_STRING_LENGTH, TEST_STRING_LENGTH };
 
-	md5.calculate(arr, lengths);
+	md5.calculate<4>(arr, lengths);
 
 	char buf[33];
 	buf[32] = '\0';
@@ -126,7 +126,135 @@ int run_original()
 	}
 }
 
-int run_simd()
+int run_simd_1x()
+{
+	char* buffers[1];
+	buffers[0] = new char[128];
+
+	const char* buffer = "abcdef";
+
+	int n = 1;
+
+	MD5_SIMD md5;
+
+	while (true)
+	{
+		uint64_t lengths[1];
+
+		int num = n;
+		int digits = digit_count(num);
+
+		lengths[0] = RUN_INIT_STRING_LENGTH + digits;
+
+		buffers[0][RUN_INIT_STRING_LENGTH + digits] = '\0';
+		memcpy(buffers[0], buffer, RUN_INIT_STRING_LENGTH);
+
+		int index = RUN_INIT_STRING_LENGTH + digits - 1;
+		while (num > 0)
+		{
+			buffers[0][index] = (char) ('0' + (num % 10));
+			num /= 10;
+			index--;
+		}
+
+		char res[32];
+
+		md5.calculate<1>(buffers, lengths);
+
+		md5.hexdigest(res, 0);
+
+		int count = 0;
+
+		for (int i = 0; i < RUN_ZERO_COUNT; i++)
+		{
+			if (res[i] == '0')
+			{
+				count++;
+				if (count >= RUN_ZERO_COUNT)
+				{
+					delete[] buffers[0];
+
+					return n;
+				}
+			}
+		}
+
+		n++;
+	}
+
+	delete[] buffers[0];
+}
+
+int run_simd_2x()
+{
+	char* buffers[2];
+	buffers[0] = new char[128];
+	buffers[1] = new char[128];
+
+	const char* buffer = "abcdef";
+
+	int n = 1;
+
+	MD5_SIMD md5;
+
+	while (true)
+	{
+
+		uint64_t lengths[2];
+
+		for (int i = 0; i < 2; i++)
+		{
+			int num = n + i;
+			int digits = digit_count(num);
+
+			lengths[i] = RUN_INIT_STRING_LENGTH + digits;
+
+			buffers[i][RUN_INIT_STRING_LENGTH + digits] = '\0';
+			memcpy(buffers[i], buffer, RUN_INIT_STRING_LENGTH);
+
+			int index = RUN_INIT_STRING_LENGTH + digits - 1;
+			while (num > 0)
+			{
+				buffers[i][index] = (char) ('0' + (num % 10));
+				num /= 10;
+				index--;
+			}
+		}
+
+		char res[32];
+
+		md5.calculate<2>(buffers, lengths);
+
+		for (int buffer_index = 0; buffer_index < 2; buffer_index++)
+		{
+			md5.hexdigest(res, buffer_index);
+
+			int count = 0;
+
+			for (int i = 0; i < RUN_ZERO_COUNT; i++)
+			{
+				if (res[i] == '0')
+				{
+					count++;
+					if (count >= RUN_ZERO_COUNT)
+					{
+						delete[] buffers[0];
+						delete[] buffers[1];
+
+						return n + buffer_index;
+					}
+				}
+			}
+		}
+
+		n += 2;
+	}
+
+	delete[] buffers[0];
+	delete[] buffers[1];
+}
+
+int run_simd_4x()
 {
 	char* buffers[4];
 	buffers[0] = new char[128];
@@ -166,7 +294,7 @@ int run_simd()
 
 		char res[32];
 
-		md5.calculate(buffers, lengths);
+		md5.calculate<4>(buffers, lengths);
 
 		for (int buffer_index = 0; buffer_index < 4; buffer_index++)
 		{
@@ -235,26 +363,38 @@ int main()
 		return 0;
 	}
 
+	cout << endl;
+
 	// test for correct running
 	bool run_original_result = run_original() == RUN_RESULT;
-	bool run_simd_result = run_simd() == RUN_RESULT;
+	bool run_simd_1x_result = run_simd_4x() == RUN_RESULT;
+	bool run_simd_2x_result = run_simd_4x() == RUN_RESULT;
+	bool run_simd_4x_result = run_simd_4x() == RUN_RESULT;
 
 	cout << "run: original => " << (run_original() == 31556 ? "succeeded" : "failed") << endl;
-	cout << "run: simd => " << (run_simd() == 31556 ? "succeeded" : "failed") << endl;
+	cout << "run: simd 1x => " << (run_simd_1x() == 31556 ? "succeeded" : "failed") << endl;
+	cout << "run: simd 2x => " << (run_simd_2x() == 31556 ? "succeeded" : "failed") << endl;
+	cout << "run: simd 4x => " << (run_simd_4x() == 31556 ? "succeeded" : "failed") << endl;
 
-	if (!run_original_result || !run_simd_result)
+	if (!run_original_result || !run_simd_1x_result || !run_simd_2x_result || !run_simd_4x_result)
 	{
 		return 0;
 	}
 
-	int reps = 500;
+	cout << endl;
 
 	// time the functions
-	double time_original = time(reps, run_original);
-	cout << "time: original => " << fixed << setprecision(3) << time_original << "us" << endl;
+	int reps = 1000;
 
-	double time_simd = time(reps, run_simd);
-	cout << "time: simd => " << fixed << setprecision(3) << time_simd << "us" << endl;
+	double time_original = time(reps, run_original);
+	double time_simd_1x = time(reps, run_simd_1x);
+	double time_simd_2x = time(reps, run_simd_2x);
+	double time_simd_4x = time(reps, run_simd_4x);
+
+	cout << "time: original => " << fixed << setprecision(3) << time_original << "us" << endl;
+	cout << "time: simd 1x => " << fixed << setprecision(3) << time_simd_1x << "us" << endl;
+	cout << "time: simd 2x => " << fixed << setprecision(3) << time_simd_2x << "us" << endl;
+	cout << "time: simd 4x => " << fixed << setprecision(3) << time_simd_4x << "us" << endl;
 
 	return 0;
 }
