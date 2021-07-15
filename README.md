@@ -5,7 +5,7 @@ Built from an [existing md5 implementation](http://www.zedwood.com/article/cpp-m
 Also some SIMD functions took from [https://github.com/crossbowerbt/md5/](https://github.com/crossbowerbt/md5/blob/master/md5_sse.c)
 
 ## Usage
-Simply copy the files in [source/simd](../blob/master/source/simd)
+Simply copy the files in [source/simd](../master/source/simd)
 
 Make sure to compile the source with `/02` (msvc) or `-O3` (gcc) for best performance.
 
