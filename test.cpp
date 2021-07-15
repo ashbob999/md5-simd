@@ -12,6 +12,7 @@ using namespace std;
 constexpr int TEST_STRING_LENGTH = 43;
 constexpr int RUN_INIT_STRING_LENGTH = 6;
 constexpr int RUN_ZERO_COUNT = 4;
+constexpr int RUN_RESULT = 31556;
 
 inline int digit_count(int number)
 {
@@ -34,7 +35,11 @@ bool test_original()
 	char buf[33];
 	buf[32] = '\0';
 
-	md5(text, TEST_STRING_LENGTH, buf);
+	MD5 md5;
+
+	md5.calculate(text, TEST_STRING_LENGTH);
+
+	md5.hexdigest(buf);
 
 	if (strcmp(buf, "9e107d9d372bb6826bd81d3542a419d6") == 0)
 	{
@@ -50,7 +55,7 @@ bool test_simd()
 {
 	const char* text = "The quick brown fox jumps over the lazy dog";
 
-	MD5_int md5;
+	MD5_SIMD md5;
 
 	const char* arr[4] = { text, text, text, text };
 	uint64_t lengths[4] = { TEST_STRING_LENGTH, TEST_STRING_LENGTH, TEST_STRING_LENGTH, TEST_STRING_LENGTH };
@@ -133,7 +138,7 @@ int run_simd()
 
 	int n = 1;
 
-	MD5_int md5;
+	MD5_SIMD md5;
 
 	while (true)
 	{
@@ -216,16 +221,31 @@ double time(int reps, int(*fn)())
 	return t;
 }
 
-void main()
+int main()
 {
 	// test for correct hashes
+	bool test_original_result = test_original();
+	bool test_simd_result = test_simd();
+
 	cout << "test: original => " << (test_original() ? "succeeded" : "failed") << endl;
 	cout << "test: simd => " << (test_simd() ? "succeeded" : "failed") << endl;
 
+	if (!test_original_result || !test_simd_result)
+	{
+		return 0;
+	}
+
 	// test for correct running
+	bool run_original_result = run_original() == RUN_RESULT;
+	bool run_simd_result = run_simd() == RUN_RESULT;
+
 	cout << "run: original => " << (run_original() == 31556 ? "succeeded" : "failed") << endl;
 	cout << "run: simd => " << (run_simd() == 31556 ? "succeeded" : "failed") << endl;
 
+	if (!run_original_result || !run_simd_result)
+	{
+		return 0;
+	}
 
 	int reps = 500;
 
@@ -235,4 +255,6 @@ void main()
 
 	double time_simd = time(reps, run_simd);
 	cout << "time: simd => " << fixed << setprecision(3) << time_simd << "us" << endl;
+
+	return 0;
 }

@@ -27,39 +27,22 @@ without express or implied warranty of any kind.
 
 These notices must be retained in any copies of any part of this
 documentation and/or software.
-
-This has been derived/modified for speed for Advent of Code puzzles.
-plus code from: https://github.com/crossbowerbt/md5/blob/master/md5_sse.c
 */
 
-#ifndef BZF_MD5_H
-#define BZF_MD5_H
+#ifndef MD5_ORIGINAL_H
+#define MD5_ORIGINAL_H
 
 #include <cstring>
 #include <iostream>
 #include <cstdint>
 
-constexpr char hex_mapping[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-
-// a small class for calculating MD5 hashes of strings or byte arrays
-// it is not meant to be fast or secure
-//
-// usage: 1) feed it blocks of uchars with update()
-//      2) finalize()
-//      3) get hexdigest() string
-//      or
-//      MD5(std::string).hexdigest()
-//
-// assumes that char is 8 bit and int is 32 bit
 class MD5
 {
+	static constexpr int BLOCK_SIZE = 64;
 public:
 	typedef unsigned int size_type; // must be 32bit
 
 	MD5();
-	//MD5() = delete;
-	//MD5(const std::string& text);
-	//MD5(const char* text, int length);
 
 	MD5(MD5&) = delete;
 	MD5(const MD5&) = delete;
@@ -68,26 +51,27 @@ public:
 	MD5(const MD5&&) = delete;
 
 	void calculate(const std::string text);
-	void calculate(const char* text, uint64_t length);
-	void calculate(char* text, uint64_t length);
+	void calculate(char* text, size_type length);
+	void calculate(const char* text, size_type length);
 	void reset();
 
-	void update(const unsigned char* buf, size_type length);
-	void update(const char* buf, size_type length);
-	MD5& finalize();
 	std::string hexdigest() const;
 	void hexdigest(char* str) const;
 
 private:
 	void init();
-	enum { blocksize = 64 }; // VC6 won't eat a const static int here
 
-	void transform(const uint8_t block[blocksize]);
+	void update(const char* buf, size_type length);
+	void update(const unsigned char* buf, size_type length);
+
+	void transform(const uint8_t block[BLOCK_SIZE]);
+	void finalize();
+
 	static void decode(uint32_t output[], const uint8_t input[], size_type len);
 	static void encode(uint8_t output[], const uint32_t input[], size_type len);
 
 	bool finalized;
-	uint8_t buffer[blocksize]; // bytes that didn't fit in last 64 byte chunk
+	uint8_t buffer[BLOCK_SIZE]; // bytes that didn't fit in last 64 byte chunk
 	uint32_t count[2];   // 64bit counter for number of bits (lo, hi)
 	uint32_t state[4];   // digest so far
 	uint8_t digest[16]; // the result
@@ -102,9 +86,26 @@ private:
 	static inline void GG(uint32_t& a, uint32_t b, uint32_t c, uint32_t d, uint32_t x, uint32_t s, uint32_t ac);
 	static inline void HH(uint32_t& a, uint32_t b, uint32_t c, uint32_t d, uint32_t x, uint32_t s, uint32_t ac);
 	static inline void II(uint32_t& a, uint32_t b, uint32_t c, uint32_t d, uint32_t x, uint32_t s, uint32_t ac);
-};
 
-std::string md5(const std::string str);
-void md5(const char* input, int input_length, char* output);
+	static constexpr char HEX_MAPPING[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+	// per round shift amounts
+	static constexpr uint32_t S11 = 7;
+	static constexpr uint32_t S12 = 12;
+	static constexpr uint32_t S13 = 17;
+	static constexpr uint32_t S14 = 22;
+	static constexpr uint32_t S21 = 5;
+	static constexpr uint32_t S22 = 9;
+	static constexpr uint32_t S23 = 14;
+	static constexpr uint32_t S24 = 20;
+	static constexpr uint32_t S31 = 4;
+	static constexpr uint32_t S32 = 11;
+	static constexpr uint32_t S33 = 16;
+	static constexpr uint32_t S34 = 23;
+	static constexpr uint32_t S41 = 6;
+	static constexpr uint32_t S42 = 10;
+	static constexpr uint32_t S43 = 15;
+	static constexpr uint32_t S44 = 21;
+};
 
 #endif
