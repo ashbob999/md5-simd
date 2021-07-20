@@ -329,6 +329,95 @@ int run_simd_4x()
 	delete[] buffers[3];
 }
 
+#ifdef USE_256_BITS
+int run_simd_8x()
+{
+	char* buffers[8];
+	buffers[0] = new char[128];
+	buffers[1] = new char[128];
+	buffers[2] = new char[128];
+	buffers[3] = new char[128];
+	buffers[4] = new char[128];
+	buffers[5] = new char[128];
+	buffers[6] = new char[128];
+	buffers[7] = new char[128];
+
+	const char* buffer = "abcdef";
+
+	int n = 1;
+
+	MD5_SIMD md5;
+
+	while (true)
+	{
+
+		uint64_t lengths[8];
+
+		for (int i = 0; i < 8; i++)
+		{
+			int num = n + i;
+			int digits = digit_count(num);
+
+			lengths[i] = RUN_INIT_STRING_LENGTH + digits;
+
+			buffers[i][RUN_INIT_STRING_LENGTH + digits] = '\0';
+			memcpy(buffers[i], buffer, RUN_INIT_STRING_LENGTH);
+
+			int index = RUN_INIT_STRING_LENGTH + digits - 1;
+			while (num > 0)
+			{
+				buffers[i][index] = (char) ('0' + (num % 10));
+				num /= 10;
+				index--;
+			}
+		}
+
+		char res[32];
+
+		md5.calculate<8>(buffers, lengths);
+
+		for (int buffer_index = 0; buffer_index < 8; buffer_index++)
+		{
+			md5.hexdigest(res, buffer_index);
+
+			int count = 0;
+
+			for (int i = 0; i < RUN_ZERO_COUNT; i++)
+			{
+				if (res[i] == '0')
+				{
+					count++;
+					if (count >= RUN_ZERO_COUNT)
+					{
+						delete[] buffers[0];
+						delete[] buffers[1];
+						delete[] buffers[2];
+						delete[] buffers[3];
+						delete[] buffers[4];
+						delete[] buffers[5];
+						delete[] buffers[6];
+						delete[] buffers[7];
+
+						return n + buffer_index;
+					}
+				}
+			}
+		}
+
+		n += 4;
+	}
+
+	delete[] buffers[0];
+	delete[] buffers[1];
+	delete[] buffers[2];
+	delete[] buffers[3];
+	delete[] buffers[4];
+	delete[] buffers[5];
+	delete[] buffers[6];
+	delete[] buffers[7];
+}
+#endif
+
 double time(int reps, int(*fn)())
 {
 	auto st = chrono::steady_clock::now();
@@ -355,8 +444,8 @@ int main()
 	bool test_original_result = test_original();
 	bool test_simd_result = test_simd();
 
-	cout << "test: original => " << (test_original() ? "succeeded" : "failed") << endl;
-	cout << "test: simd => " << (test_simd() ? "succeeded" : "failed") << endl;
+	cout << "test: original => " << (test_original_result ? "succeeded" : "failed") << endl;
+	cout << "test: simd => " << (test_simd_result ? "succeeded" : "failed") << endl;
 
 	if (!test_original_result || !test_simd_result)
 	{
@@ -370,13 +459,23 @@ int main()
 	bool run_simd_1x_result = run_simd_4x() == RUN_RESULT;
 	bool run_simd_2x_result = run_simd_4x() == RUN_RESULT;
 	bool run_simd_4x_result = run_simd_4x() == RUN_RESULT;
+#ifdef USE_256_BITS
+	bool run_simd_8x_result = run_simd_8x() == RUN_RESULT;
+#endif
 
-	cout << "run: original => " << (run_original() == 31556 ? "succeeded" : "failed") << endl;
-	cout << "run: simd 1x => " << (run_simd_1x() == 31556 ? "succeeded" : "failed") << endl;
-	cout << "run: simd 2x => " << (run_simd_2x() == 31556 ? "succeeded" : "failed") << endl;
-	cout << "run: simd 4x => " << (run_simd_4x() == 31556 ? "succeeded" : "failed") << endl;
+	cout << "run: original => " << (run_original_result ? "succeeded" : "failed") << endl;
+	cout << "run: simd 1x => " << (run_simd_1x_result ? "succeeded" : "failed") << endl;
+	cout << "run: simd 2x => " << (run_simd_2x_result ? "succeeded" : "failed") << endl;
+	cout << "run: simd 4x => " << (run_simd_4x_result ? "succeeded" : "failed") << endl;
+#ifdef USE_256_BITS
+	cout << "run: simd 8x => " << (run_simd_8x_result ? "succeeded" : "failed") << endl;
+#endif
 
+#ifdef USE_256_BITS
+	if (!run_original_result || !run_simd_1x_result || !run_simd_2x_result || !run_simd_4x_result || !run_simd_8x_result)
+#else
 	if (!run_original_result || !run_simd_1x_result || !run_simd_2x_result || !run_simd_4x_result)
+#endif
 	{
 		return 0;
 	}
@@ -384,17 +483,23 @@ int main()
 	cout << endl;
 
 	// time the functions
-	int reps = 1000;
+	int reps = 10;
 
 	double time_original = time(reps, run_original);
 	double time_simd_1x = time(reps, run_simd_1x);
 	double time_simd_2x = time(reps, run_simd_2x);
 	double time_simd_4x = time(reps, run_simd_4x);
+#ifdef USE_256_BITS
+	double time_simd_8x = time(reps, run_simd_8x);
+#endif
 
 	cout << "time: original => " << fixed << setprecision(3) << time_original << "us" << endl;
 	cout << "time: simd 1x => " << fixed << setprecision(3) << time_simd_1x << "us" << endl;
 	cout << "time: simd 2x => " << fixed << setprecision(3) << time_simd_2x << "us" << endl;
 	cout << "time: simd 4x => " << fixed << setprecision(3) << time_simd_4x << "us" << endl;
+#ifdef USE_256_BITS
+	cout << "time: simd 8x => " << fixed << setprecision(3) << time_simd_8x << "us" << endl;
+#endif
 
 	return 0;
 }

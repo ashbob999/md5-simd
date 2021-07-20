@@ -1,54 +1,54 @@
 
 #include "md5-simd.h"
 
-inline __m128i MD5_SIMD::F(__m128i a, __m128i b, __m128i c, __m128i d)
+inline __reg MD5_SIMD::F(__reg a, __reg b, __reg c, __reg d)
 {
-	return _mm_xor_si128(d, _mm_and_si128(b, _mm_xor_si128(c, d)));
+	return _xor_si(d, _and_si(b, _xor_si(c, d)));
 }
 
-inline __m128i MD5_SIMD::G(__m128i a, __m128i b, __m128i c, __m128i d)
+inline __reg MD5_SIMD::G(__reg a, __reg b, __reg c, __reg d)
 {
-	return _mm_xor_si128(c, _mm_and_si128(d, _mm_xor_si128(b, c)));
+	return _xor_si(c, _and_si(d, _xor_si(b, c)));
 }
 
-inline __m128i MD5_SIMD::H(__m128i a, __m128i b, __m128i c, __m128i d)
+inline __reg MD5_SIMD::H(__reg a, __reg b, __reg c, __reg d)
 {
-	return _mm_xor_si128(b, _mm_xor_si128(c, d));
+	return _xor_si(b, _xor_si(c, d));
 }
 
-inline __m128i MD5_SIMD::I(__m128i a, __m128i b, __m128i c, __m128i d)
+inline __reg MD5_SIMD::I(__reg a, __reg b, __reg c, __reg d)
 {
-	return _mm_xor_si128(c, _mm_or_si128(b, _mm_xor_si128(d, _mm_set_epi32(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF))));
+	return _xor_si(c, _or_si(b, _xor_si(d, _set1_epi32(0xFFFFFFFF))));
 }
 
-inline __m128i MD5_SIMD::rotate_left(__m128i x, __m128i n)
+inline __reg MD5_SIMD::rotate_left(__reg x, __reg n)
 {
-	return _mm_or_si128(_mm_sllv_epi32(x, n),
-		_mm_srlv_epi32(x, _mm_sub_epi32(_mm_set_epi32(32, 32, 32, 32), n)));
+	return _or_si(_sllv_epi32(x, n),
+		_srlv_epi32(x, _sub_epi32(_set1_epi32(32), n)));
 }
 
-inline void MD5_SIMD::FF(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac)
+inline void MD5_SIMD::FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
 {
-	__m128i tmp = _mm_add_epi32(a, _mm_add_epi32(F(a, b, c, d), _mm_add_epi32(x, ac)));
-	a = _mm_add_epi32(b, rotate_left(tmp, s));
+	__reg tmp = _add_epi32(a, _add_epi32(F(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left(tmp, s));
 }
 
-inline void MD5_SIMD::GG(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac)
+inline void MD5_SIMD::GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
 {
-	__m128i tmp = _mm_add_epi32(a, _mm_add_epi32(G(a, b, c, d), _mm_add_epi32(x, ac)));
-	a = _mm_add_epi32(b, rotate_left(tmp, s));
+	__reg tmp = _add_epi32(a, _add_epi32(G(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left(tmp, s));
 }
 
-inline void MD5_SIMD::HH(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac)
+inline void MD5_SIMD::HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
 {
-	__m128i tmp = _mm_add_epi32(a, _mm_add_epi32(H(a, b, c, d), _mm_add_epi32(x, ac)));
-	a = _mm_add_epi32(b, rotate_left(tmp, s));
+	__reg tmp = _add_epi32(a, _add_epi32(H(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left(tmp, s));
 }
 
-inline void MD5_SIMD::II(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac)
+inline void MD5_SIMD::II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
 {
-	__m128i tmp = _mm_add_epi32(a, _mm_add_epi32(I(a, b, c, d), _mm_add_epi32(x, ac)));
-	a = _mm_add_epi32(b, rotate_left(tmp, s));
+	__reg tmp = _add_epi32(a, _add_epi32(I(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left(tmp, s));
 }
 
 MD5_SIMD::MD5_SIMD()
@@ -70,40 +70,32 @@ MD5_SIMD::MD5_SIMD(uint64_t buffer_size)
 
 MD5_SIMD::~MD5_SIMD()
 {
-	delete[] input_buffers[0];
-	delete[] input_buffers[1];
-	delete[] input_buffers[2];
-	delete[] input_buffers[3];
+	for (int i = 0; i < HASH_COUNT; i++)
+	{
+		delete[] input_buffers[i];
+	}
 }
 
 void MD5_SIMD::init()
 {
-	finalized = false;
-
-	count = 0;
-
-	// load magic initialization constants.
-	state[0] = _mm_set1_epi32(0x67452301);
-	state[1] = _mm_set1_epi32(0xefcdab89);
-	state[2] = _mm_set1_epi32(0x98badcfe);
-	state[3] = _mm_set1_epi32(0x10325476);
+	reset();
 
 	int i;
 
 	for (i = 0; i < (sizeof(rv) / sizeof(*rv)); i++)
 	{
-		rv[i] = _mm_set_epi32(r[i], r[i], r[i], r[i]);
+		rv[i] = _set1_epi32(r[i]);
 	}
 
 	for (i = 0; i < (sizeof(kv) / sizeof(*kv)); i++)
 	{
-		kv[i] = _mm_set_epi32(k[i], k[i], k[i], k[i]);
+		kv[i] = _set1_epi32(k[i]);
 	}
 
-	input_buffers[0] = new unsigned char[input_buffer_size];
-	input_buffers[1] = new unsigned char[input_buffer_size];
-	input_buffers[2] = new unsigned char[input_buffer_size];
-	input_buffers[3] = new unsigned char[input_buffer_size];
+	for (int hash_index = 0; hash_index < HASH_COUNT; hash_index++)
+	{
+		input_buffers[hash_index] = new unsigned char[input_buffer_size];
+	}
 }
 
 void MD5_SIMD::reset()
@@ -114,25 +106,25 @@ void MD5_SIMD::reset()
 	count = 0;
 
 	// reset state
-	state[0] = _mm_set1_epi32(0x67452301);
-	state[1] = _mm_set1_epi32(0xefcdab89);
-	state[2] = _mm_set1_epi32(0x98badcfe);
-	state[3] = _mm_set1_epi32(0x10325476);
+	state[0] = _set1_epi32(0x67452301);
+	state[1] = _set1_epi32(0xefcdab89);
+	state[2] = _set1_epi32(0x98badcfe);
+	state[3] = _set1_epi32(0x10325476);
 
 	// clear buffer
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < HASH_COUNT; i++)
 	{
-		buffer[i][0] = _mm_setzero_si128();
-		buffer[i][1] = _mm_setzero_si128();
-		buffer[i][2] = _mm_setzero_si128();
-		buffer[i][3] = _mm_setzero_si128();
+		buffer[i][0] = _setzero_si128();
+		buffer[i][1] = _setzero_si128();
+		buffer[i][2] = _setzero_si128();
+		buffer[i][3] = _setzero_si128();
 	}
 
 	// clear digest
-	digest[0] = _mm_setzero_si128();
-	digest[1] = _mm_setzero_si128();
-	digest[2] = _mm_setzero_si128();
-	digest[3] = _mm_setzero_si128();
+	for (int i = 0; i < HASH_COUNT; i++)
+	{
+		digest[i] = _setzero_si();
+	}
 }
 
 void MD5_SIMD::pad_input(const char* text, uint64_t length, int idx)
@@ -177,24 +169,24 @@ void MD5_SIMD::update(unsigned char* input[HASH_COUNT], uint64_t length)
 	if (length >= firstpart)
 	{
 		// fill buffer first, transform
-		memcpy(buffer[0] + index, input[0], firstpart);
-		memcpy(buffer[1] + index, input[1], firstpart);
-		memcpy(buffer[2] + index, input[2], firstpart);
-		memcpy(buffer[3] + index, input[3], firstpart);
+		for (int hash_index = 0; hash_index < HASH_COUNT; hash_index++)
+		{
+			memcpy(buffer[hash_index] + index, input[hash_index], firstpart);
+		}
 
 		transform(buffer);
 
 		// transform chunks of blocksize (64 bytes)
 		for (i = firstpart; i + BLOCK_SIZE <= length; i += BLOCK_SIZE)
 		{
-			__m128i next[HASH_COUNT][4];
+			__reg128 next[HASH_COUNT][4];
 
 			for (int hash_index = 0; hash_index < HASH_COUNT; hash_index++)
 			{
-				next[hash_index][0] = _mm_loadu_si128((__m128i*)(input[0] + i));
-				next[hash_index][1] = _mm_loadu_si128((__m128i*)(input[0] + i + 16));
-				next[hash_index][2] = _mm_loadu_si128((__m128i*)(input[0] + i + 32));
-				next[hash_index][3] = _mm_loadu_si128((__m128i*)(input[0] + i + 48));
+				next[hash_index][0] = _loadu_si128((__reg128*) (input[0] + i));
+				next[hash_index][1] = _loadu_si128((__reg128*) (input[0] + i + 16));
+				next[hash_index][2] = _loadu_si128((__reg128*) (input[0] + i + 32));
+				next[hash_index][3] = _loadu_si128((__reg128*) (input[0] + i + 48));
 			}
 
 			transform(next);
@@ -216,14 +208,14 @@ void MD5_SIMD::update(unsigned char* input[HASH_COUNT], uint64_t length)
 	memcpy(&data[index], &input[i], chars_left);
 }
 
-void MD5_SIMD::transform(const __m128i block[HASH_COUNT][4])
+void MD5_SIMD::transform(const __reg128 block[HASH_COUNT][4])
 {
-	__m128i a = state[0];
-	__m128i b = state[1];
-	__m128i c = state[2];
-	__m128i d = state[3];
+	__reg a = state[0];
+	__reg b = state[1];
+	__reg c = state[2];
+	__reg d = state[3];
 
-	__m128i x[16];
+	__reg x[16];
 
 	decode (x, block, BLOCK_SIZE);
 
@@ -300,10 +292,10 @@ void MD5_SIMD::transform(const __m128i block[HASH_COUNT][4])
 	II (b, c, d, a, x[9], rv[63], kv[63]); /* 64 */
 
 	// update state
-	state[0] = _mm_add_epi32(state[0], a);
-	state[1] = _mm_add_epi32(state[1], b);
-	state[2] = _mm_add_epi32(state[2], c);
-	state[3] = _mm_add_epi32(state[3], d);
+	state[0] = _add_epi32(state[0], a);
+	state[1] = _add_epi32(state[1], b);
+	state[2] = _add_epi32(state[2], c);
+	state[3] = _add_epi32(state[3], d);
 }
 
 void MD5_SIMD::finalize()
@@ -317,44 +309,113 @@ void MD5_SIMD::finalize()
 	if (!finalized)
 	{
 		// Store state in digest
-		encode(digest, state, 16 * 4);
-
-		// transpose requires floats
-		__m128 r0f = _mm_castsi128_ps(digest[0]);
-		__m128 r1f = _mm_castsi128_ps(digest[1]);
-		__m128 r2f = _mm_castsi128_ps(digest[2]);
-		__m128 r3f = _mm_castsi128_ps(digest[3]);
+		encode(digest, state, 16 * HASH_COUNT);
 
 		// because: digest[0] = state[0][0] | state[1][0] | state[2][0] | state[3][0]
-		_MM_TRANSPOSE4_PS(r0f, r1f, r2f, r3f);
-
-		digest[0] = _mm_castps_si128(r0f);
-		digest[1] = _mm_castps_si128(r1f);
-		digest[2] = _mm_castps_si128(r2f);
-		digest[3] = _mm_castps_si128(r3f);
+		transpose(digest);
 
 		finalized = true;
 	}
 }
 
-inline void MD5_SIMD::decode(__m128i output[16], const __m128i input[HASH_COUNT][4], uint64_t len)
+inline void MD5_SIMD::transpose(__reg digest[HASH_COUNT])
+{
+	//using namespace simd_functions;
+
+	// casting is needed because transpose requires floats
+#ifdef USE_256_BITS
+	__reg_ps row0 = _castsi_ps(digest[0]);
+	__reg_ps row1 = _castsi_ps(digest[1]);
+	__reg_ps row2 = _castsi_ps(digest[2]);
+	__reg_ps row3 = _castsi_ps(digest[3]);
+	__reg_ps row4 = _castsi_ps(digest[4]);
+	__reg_ps row5 = _castsi_ps(digest[5]);
+	__reg_ps row6 = _castsi_ps(digest[6]);
+	__reg_ps row7 = _castsi_ps(digest[7]);
+
+	__reg_ps __t0, __t1, __t2, __t3, __t4, __t5, __t6, __t7;
+	__reg_ps __tt0, __tt1, __tt2, __tt3, __tt4, __tt5, __tt6, __tt7;
+
+	__t0 = _unpacklo_ps(row0, row1);
+	__t1 = _unpackhi_ps(row0, row1);
+	__t2 = _unpacklo_ps(row2, row3);
+	__t3 = _unpackhi_ps(row2, row3);
+	__t4 = _unpacklo_ps(row4, row5);
+	__t5 = _unpackhi_ps(row4, row5);
+	__t6 = _unpacklo_ps(row6, row7);
+	__t7 = _unpackhi_ps(row6, row7);
+	__tt0 = _shuffle_ps(__t0, __t2, _MM_SHUFFLE(1, 0, 1, 0));
+	__tt1 = _shuffle_ps(__t0, __t2, _MM_SHUFFLE(3, 2, 3, 2));
+	__tt2 = _shuffle_ps(__t1, __t3, _MM_SHUFFLE(1, 0, 1, 0));
+	__tt3 = _shuffle_ps(__t1, __t3, _MM_SHUFFLE(3, 2, 3, 2));
+	__tt4 = _shuffle_ps(__t4, __t6, _MM_SHUFFLE(1, 0, 1, 0));
+	__tt5 = _shuffle_ps(__t4, __t6, _MM_SHUFFLE(3, 2, 3, 2));
+	__tt6 = _shuffle_ps(__t5, __t7, _MM_SHUFFLE(1, 0, 1, 0));
+	__tt7 = _shuffle_ps(__t5, __t7, _MM_SHUFFLE(3, 2, 3, 2));
+	row0 = _permute2f128_ps(__tt0, __tt4, 0x20);
+	row1 = _permute2f128_ps(__tt1, __tt5, 0x20);
+	row2 = _permute2f128_ps(__tt2, __tt6, 0x20);
+	row3 = _permute2f128_ps(__tt3, __tt7, 0x20);
+	row4 = _permute2f128_ps(__tt0, __tt4, 0x31);
+	row5 = _permute2f128_ps(__tt1, __tt5, 0x31);
+	row6 = _permute2f128_ps(__tt2, __tt6, 0x31);
+	row7 = _permute2f128_ps(__tt3, __tt7, 0x31);
+
+	digest[0] = _castps_si(row0);
+	digest[1] = _castps_si(row1);
+	digest[2] = _castps_si(row2);
+	digest[3] = _castps_si(row3);
+	digest[4] = _castps_si(row4);
+	digest[5] = _castps_si(row5);
+	digest[6] = _castps_si(row6);
+	digest[7] = _castps_si(row7);
+#else
+	__reg_ps r0f = _castsi_ps(digest[0]);
+	__reg_ps r1f = _castsi_ps(digest[1]);
+	__reg_ps r2f = _castsi_ps(digest[2]);
+	__reg_ps r3f = _castsi_ps(digest[3]);
+
+	//_MM_TRANSPOSE4_PS(r0f, r1f, r2f, r3f);
+
+	__reg_ps tmp3, tmp2, tmp1, tmp0;
+	tmp0 = _unpacklo_ps(r0f, r1f);
+	tmp2 = _unpacklo_ps(r2f, r3f);
+	tmp1 = _unpackhi_ps(r0f, r1f);
+	tmp3 = _unpackhi_ps(r2f, r3f);
+	r0f = _movelh_ps(tmp0, tmp2);
+	r1f = _movehl_ps(tmp2, tmp0);
+	r2f = _movelh_ps(tmp1, tmp3);
+	r3f = _movehl_ps(tmp3, tmp1);
+
+	digest[0] = _castps_si(r0f);
+	digest[1] = _castps_si(r1f);
+	digest[2] = _castps_si(r2f);
+	digest[3] = _castps_si(r3f);
+#endif
+}
+
+inline void MD5_SIMD::decode(__reg output[16], const __reg128 input[HASH_COUNT][4], uint64_t len)
 {
 	// 64 x 8-bits => 16 x 32-bits for each hash
 
 	int* data = (int*) &input[0];
 
-	__m128i offset = _mm_setr_epi32(0, 16, 32, 48);
+#ifdef USE_256_BITS
+	__reg offset = _setr_epi32(0, 16, 32, 48, 64, 80, 96, 112);
+#else
+	__reg offset = _setr_epi32(0, 16, 32, 48);
+#endif
 
 	for (int i = 0, y = 0; i < 16; i += 4, y++)
 	{
-		output[i] = _mm_i32gather_epi32(data + i + 0, offset, 4);
-		output[i + 1] = _mm_i32gather_epi32(data + i + 1, offset, 4);
-		output[i + 2] = _mm_i32gather_epi32(data + i + 2, offset, 4);
-		output[i + 3] = _mm_i32gather_epi32(data + i + 3, offset, 4);
+		output[i] = _i32gather_epi32(data + i + 0, offset, 4);
+		output[i + 1] = _i32gather_epi32(data + i + 1, offset, 4);
+		output[i + 2] = _i32gather_epi32(data + i + 2, offset, 4);
+		output[i + 3] = _i32gather_epi32(data + i + 3, offset, 4);
 	}
 }
 
-inline void MD5_SIMD::encode(__m128i* output, const __m128i* input, uint64_t len)
+inline void MD5_SIMD::encode(__reg* output, const __reg* input, uint64_t len)
 {
 	memcpy(output, input, len);
 }
@@ -369,7 +430,10 @@ std::string MD5_SIMD::hexdigest(int index) const
 	char buf[33];
 
 	uint8_t data[16];
-	_mm_storeu_si128((__m128i*)data, digest[index]);
+
+	__reg128* tmp_pointer = (__reg128*) &digest[index];
+
+	_storeu_si128((__reg128*) data, *tmp_pointer);
 
 	for (int i = 0; i < 16; i++)
 	{
@@ -389,7 +453,10 @@ void MD5_SIMD::hexdigest(char* str, int index) const
 	}
 
 	uint8_t data[16];
-	_mm_storeu_si128((__m128i*)data, digest[index]);
+
+	__reg128* tmp_pointer = (__reg128*) &digest[index];
+
+	_storeu_si128((__reg128*) data, *tmp_pointer);
 
 	for (int i = 0; i < 16; i++)
 	{

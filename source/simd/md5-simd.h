@@ -1,17 +1,20 @@
 #ifndef MD5_SIMD_H
 #define MD5_SIMD_H
 
-// intrinsic version
-
 #include <string>
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
-#include <immintrin.h>
+
+#include "simd-functions.h"
 
 class MD5_SIMD
 {
+#ifdef USE_256_BITS
+	static constexpr int HASH_COUNT = 8;
+#else
 	static constexpr int HASH_COUNT = 4;
+#endif
 	static constexpr int BLOCK_SIZE = 64;
 public:
 	MD5_SIMD();
@@ -105,25 +108,27 @@ private:
 	void update(unsigned char* buf[HASH_COUNT], uint64_t length);
 
 	// stores 64 * 8-bits( block[hash_index][chunk_index] )
-	void transform(const __m128i block[HASH_COUNT][4]);
+	void transform(const __reg128 block[HASH_COUNT][4]);
 	void finalize();
 
-	static inline void decode(__m128i output[16], const __m128i input[HASH_COUNT][4], uint64_t len);
-	static inline void encode(__m128i* output, const __m128i* input, uint64_t len);
+	static inline void transpose(__reg digest[HASH_COUNT]);
+
+	static inline void decode(__reg output[16], const __reg128 input[HASH_COUNT][4], uint64_t len);
+	static inline void encode(__reg* output, const __reg* input, uint64_t len);
 
 	bool finalized;
 
 	// bytes that didn't fit in last 64 byte chunk
-	__m128i buffer[HASH_COUNT][(8 * BLOCK_SIZE) / 128];
+	__reg128 buffer[HASH_COUNT][(8 * BLOCK_SIZE) / 128];
 
 	// counter for number of bits
 	uint64_t count;
 
 	// state per md5 is stored vertically (split into 32 bit chunks) (all a states are in state[0]) (a0 = state[0][0..31], b0 = state[1][0..31] and so on)
-	__m128i state[HASH_COUNT];
+	__reg state[4];
 
 	// stores the result, as 32 x 4 bits (or 16 uint8_t's) (hash 0 = digest[0])
-	__m128i digest[HASH_COUNT];
+	__reg digest[HASH_COUNT];
 
 	// buffers to store the padded inputs
 	unsigned char* input_buffers[HASH_COUNT];
@@ -132,15 +137,15 @@ private:
 	static constexpr char HEX_MAPPING[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
 	// low level logic operations
-	static inline __m128i F(__m128i a, __m128i b, __m128i c, __m128i d);
-	static inline __m128i G(__m128i a, __m128i b, __m128i c, __m128i d);
-	static inline __m128i H(__m128i a, __m128i b, __m128i c, __m128i d);
-	static inline __m128i I(__m128i a, __m128i b, __m128i c, __m128i d);
-	static inline __m128i rotate_left(__m128i x, __m128i n);
-	static inline void FF(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac);
-	static inline void GG(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac);
-	static inline void HH(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac);
-	static inline void II(__m128i& a, __m128i b, __m128i c, __m128i d, __m128i x, __m128i s, __m128i ac);
+	static inline __reg F(__reg a, __reg b, __reg c, __reg d);
+	static inline __reg G(__reg a, __reg b, __reg c, __reg d);
+	static inline __reg H(__reg a, __reg b, __reg c, __reg d);
+	static inline __reg I(__reg a, __reg b, __reg c, __reg d);
+	static inline __reg rotate_left(__reg x, __reg n);
+	static inline void FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
+	static inline void GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
+	static inline void HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
+	static inline void II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
 
 	// per-round shift amounts
 	static constexpr uint32_t r[] = {
@@ -170,8 +175,8 @@ private:
 		0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 	};
 
-	__m128i rv[sizeof(r) / sizeof(*r)]; // optimized for SSE
-	__m128i kv[sizeof(k) / sizeof(*k)]; // optimized for SSE
+	__reg rv[sizeof(r) / sizeof(*r)]; // optimized for SSE
+	__reg kv[sizeof(k) / sizeof(*k)]; // optimized for SSE
 };
 
 // calculate methods for 4 hashes
@@ -185,7 +190,7 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(std::string text[MD5_SIMD:
 	uint64_t index = (text[0].length() / 64) + (text[0].length() % 64 < 56 ? 0 : 1);
 
 	// check the other inputs to make sure they use the same number of 64-char chunks
-	for (int i = 1; i < 4; i++)
+	for (int i = 1; i < HASH_COUNT; i++)
 	{
 		uint64_t tmp_index = (text[i].length() / 64) + (text[i].length() % 64 < 56 ? 0 : 1);
 		if (index != tmp_index)
@@ -200,22 +205,18 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(std::string text[MD5_SIMD:
 	// expand the input buffers if they are not big enough
 	if (total_chars > input_buffer_size)
 	{
-		delete[] input_buffers[0];
-		delete[] input_buffers[1];
-		delete[] input_buffers[2];
-		delete[] input_buffers[3];
-
-		input_buffers[0] = new unsigned char[total_chars];
-		input_buffers[1] = new unsigned char[total_chars];
-		input_buffers[2] = new unsigned char[total_chars];
-		input_buffers[3] = new unsigned char[total_chars];
+		for (int i = 0; i < HASH_COUNT; i++)
+		{
+			delete[] input_buffers[i];
+			input_buffers[i] = new unsigned char[total_chars];
+		}
 	}
 
 	// pad each input
-	pad_input(text[0].c_str(), text[0].length(), 0);
-	pad_input(text[1].c_str(), text[1].length(), 1);
-	pad_input(text[2].c_str(), text[2].length(), 2);
-	pad_input(text[3].c_str(), text[3].length(), 3);
+	for (int i = 0; i < HASH_COUNT; i++)
+	{
+		pad_input(text[i].c_str(), text[i].length(), i);
+	}
 
 	// update the state
 	update(input_buffers, total_chars);
@@ -235,7 +236,7 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(char* text[MD5_SIMD::HASH_
 	uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
 
 	// check the other inputs to make sure they use the same number of 64-char chunks
-	for (int i = 1; i < 4; i++)
+	for (int i = 1; i < HASH_COUNT; i++)
 	{
 		uint64_t tmp_index = (length[i] / 64) + (length[i] % 64 < 56 ? 0 : 1);
 		if (index != tmp_index)
@@ -250,22 +251,18 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(char* text[MD5_SIMD::HASH_
 	// expand the input buffers if they are not big enough
 	if (total_chars > input_buffer_size)
 	{
-		delete[] input_buffers[0];
-		delete[] input_buffers[1];
-		delete[] input_buffers[2];
-		delete[] input_buffers[3];
-
-		input_buffers[0] = new unsigned char[total_chars];
-		input_buffers[1] = new unsigned char[total_chars];
-		input_buffers[2] = new unsigned char[total_chars];
-		input_buffers[3] = new unsigned char[total_chars];
+		for (int i = 0; i < HASH_COUNT; i++)
+		{
+			delete[] input_buffers[i];
+			input_buffers[i] = new unsigned char[total_chars];
+		}
 	}
 
 	// pad each input
-	pad_input(text[0], length[0], 0);
-	pad_input(text[1], length[1], 1);
-	pad_input(text[2], length[2], 2);
-	pad_input(text[3], length[3], 3);
+	for (int i = 0; i < HASH_COUNT; i++)
+	{
+		pad_input(text[i], length[i], i);
+	}
 
 	// update the state
 	update(input_buffers, total_chars);
@@ -285,7 +282,7 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(const char* text[MD5_SIMD:
 	uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
 
 	// check the other inputs to make sure they use the same number of 64-char chunks
-	for (int i = 1; i < 4; i++)
+	for (int i = 1; i < HASH_COUNT; i++)
 	{
 		uint64_t tmp_index = (length[i] / 64) + (length[i] % 64 < 56 ? 0 : 1);
 		if (index != tmp_index)
@@ -300,22 +297,18 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(const char* text[MD5_SIMD:
 	// expand the input buffers if they are not big enough
 	if (total_chars > input_buffer_size)
 	{
-		delete[] input_buffers[0];
-		delete[] input_buffers[1];
-		delete[] input_buffers[2];
-		delete[] input_buffers[3];
-
-		input_buffers[0] = new unsigned char[total_chars];
-		input_buffers[1] = new unsigned char[total_chars];
-		input_buffers[2] = new unsigned char[total_chars];
-		input_buffers[3] = new unsigned char[total_chars];
+		for (int i = 0; i < HASH_COUNT; i++)
+		{
+			delete[] input_buffers[i];
+			input_buffers[i] = new unsigned char[total_chars];
+		}
 	}
 
 	// pad each input
-	pad_input(text[0], length[0], 0);
-	pad_input(text[1], length[1], 1);
-	pad_input(text[2], length[2], 2);
-	pad_input(text[3], length[3], 3);
+	for (int i = 0; i < HASH_COUNT; i++)
+	{
+		pad_input(text[i], length[i], i);
+	}
 
 	// update the state
 	update(input_buffers, total_chars);
