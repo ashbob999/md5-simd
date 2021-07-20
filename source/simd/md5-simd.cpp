@@ -21,36 +21,6 @@ inline __reg MD5_SIMD::I(__reg a, __reg b, __reg c, __reg d)
 	return _xor_si(c, _or_si(b, _xor_si(d, _set1_epi32(0xFFFFFFFF))));
 }
 
-inline __reg MD5_SIMD::rotate_left(__reg x, __reg n)
-{
-	return _or_si(_sllv_epi32(x, n),
-		_srlv_epi32(x, _sub_epi32(_set1_epi32(32), n)));
-}
-
-inline void MD5_SIMD::FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
-{
-	__reg tmp = _add_epi32(a, _add_epi32(F(a, b, c, d), _add_epi32(x, ac)));
-	a = _add_epi32(b, rotate_left(tmp, s));
-}
-
-inline void MD5_SIMD::GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
-{
-	__reg tmp = _add_epi32(a, _add_epi32(G(a, b, c, d), _add_epi32(x, ac)));
-	a = _add_epi32(b, rotate_left(tmp, s));
-}
-
-inline void MD5_SIMD::HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
-{
-	__reg tmp = _add_epi32(a, _add_epi32(H(a, b, c, d), _add_epi32(x, ac)));
-	a = _add_epi32(b, rotate_left(tmp, s));
-}
-
-inline void MD5_SIMD::II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac)
-{
-	__reg tmp = _add_epi32(a, _add_epi32(I(a, b, c, d), _add_epi32(x, ac)));
-	a = _add_epi32(b, rotate_left(tmp, s));
-}
-
 MD5_SIMD::MD5_SIMD()
 {
 	init();
@@ -220,76 +190,76 @@ void MD5_SIMD::transform(const __reg128 block[HASH_COUNT][4])
 	decode (x, block, BLOCK_SIZE);
 
 	/* Round 1 */
-	FF (a, b, c, d, x[0], rv[0], kv[0]); /* 1 */
-	FF (d, a, b, c, x[1], rv[1], kv[1]); /* 2 */
-	FF (c, d, a, b, x[2], rv[2], kv[2]); /* 3 */
-	FF (b, c, d, a, x[3], rv[3], kv[3]); /* 4 */
-	FF (a, b, c, d, x[4], rv[4], kv[4]); /* 5 */
-	FF (d, a, b, c, x[5], rv[5], kv[5]); /* 6 */
-	FF (c, d, a, b, x[6], rv[6], kv[6]); /* 7 */
-	FF (b, c, d, a, x[7], rv[7], kv[7]); /* 8 */
-	FF (a, b, c, d, x[8], rv[8], kv[8]); /* 9 */
-	FF (d, a, b, c, x[9], rv[9], kv[9]); /* 10 */
-	FF (c, d, a, b, x[10], rv[10], kv[10]); /* 11 */
-	FF (b, c, d, a, x[11], rv[11], kv[11]); /* 12 */
-	FF (a, b, c, d, x[12], rv[12], kv[12]); /* 13 */
-	FF (d, a, b, c, x[13], rv[13], kv[13]); /* 14 */
-	FF (c, d, a, b, x[14], rv[14], kv[14]); /* 15 */
-	FF (b, c, d, a, x[15], rv[15], kv[15]); /* 16 */
+	FF<r[0]> (a, b, c, d, x[0], kv[0]); /* 1 */
+	FF<r[1]> (d, a, b, c, x[1], kv[1]); /* 2 */
+	FF<r[2]> (c, d, a, b, x[2], kv[2]); /* 3 */
+	FF<r[3]> (b, c, d, a, x[3], kv[3]); /* 4 */
+	FF<r[0]> (a, b, c, d, x[4], kv[4]); /* 5 */
+	FF<r[1]> (d, a, b, c, x[5], kv[5]); /* 6 */
+	FF<r[2]> (c, d, a, b, x[6], kv[6]); /* 7 */
+	FF<r[3]> (b, c, d, a, x[7], kv[7]); /* 8 */
+	FF<r[0]> (a, b, c, d, x[8], kv[8]); /* 9 */
+	FF<r[1]> (d, a, b, c, x[9], kv[9]); /* 10 */
+	FF<r[2]> (c, d, a, b, x[10], kv[10]); /* 11 */
+	FF<r[3]> (b, c, d, a, x[11], kv[11]); /* 12 */
+	FF<r[0]> (a, b, c, d, x[12], kv[12]); /* 13 */
+	FF<r[1]> (d, a, b, c, x[13], kv[13]); /* 14 */
+	FF<r[2]> (c, d, a, b, x[14], kv[14]); /* 15 */
+	FF<r[3]> (b, c, d, a, x[15], kv[15]); /* 16 */
 
 	/* Round 2 */
-	GG (a, b, c, d, x[1], rv[16], kv[16]); /* 17 */
-	GG (d, a, b, c, x[6], rv[17], kv[17]); /* 18 */
-	GG (c, d, a, b, x[11], rv[18], kv[18]); /* 19 */
-	GG (b, c, d, a, x[0], rv[19], kv[19]); /* 20 */
-	GG (a, b, c, d, x[5], rv[20], kv[20]); /* 21 */
-	GG (d, a, b, c, x[10], rv[21], kv[21]); /* 22 */
-	GG (c, d, a, b, x[15], rv[22], kv[22]); /* 23 */
-	GG (b, c, d, a, x[4], rv[23], kv[23]); /* 24 */
-	GG (a, b, c, d, x[9], rv[24], kv[24]); /* 25 */
-	GG (d, a, b, c, x[14], rv[25], kv[25]); /* 26 */
-	GG (c, d, a, b, x[3], rv[26], kv[26]); /* 27 */
-	GG (b, c, d, a, x[8], rv[27], kv[27]); /* 28 */
-	GG (a, b, c, d, x[13], rv[28], kv[28]); /* 29 */
-	GG (d, a, b, c, x[2], rv[29], kv[29]); /* 30 */
-	GG (c, d, a, b, x[7], rv[30], kv[30]); /* 31 */
-	GG (b, c, d, a, x[12], rv[31], kv[31]); /* 32 */
+	GG<r[4]> (a, b, c, d, x[1], kv[16]); /* 17 */
+	GG<r[5]> (d, a, b, c, x[6], kv[17]); /* 18 */
+	GG<r[6]> (c, d, a, b, x[11], kv[18]); /* 19 */
+	GG<r[7]> (b, c, d, a, x[0], kv[19]); /* 20 */
+	GG<r[4]> (a, b, c, d, x[5], kv[20]); /* 21 */
+	GG<r[5]> (d, a, b, c, x[10], kv[21]); /* 22 */
+	GG<r[6]> (c, d, a, b, x[15], kv[22]); /* 23 */
+	GG<r[7]> (b, c, d, a, x[4], kv[23]); /* 24 */
+	GG<r[4]> (a, b, c, d, x[9], kv[24]); /* 25 */
+	GG<r[5]> (d, a, b, c, x[14], kv[25]); /* 26 */
+	GG<r[6]> (c, d, a, b, x[3], kv[26]); /* 27 */
+	GG<r[7]> (b, c, d, a, x[8], kv[27]); /* 28 */
+	GG<r[4]> (a, b, c, d, x[13], kv[28]); /* 29 */
+	GG<r[5]> (d, a, b, c, x[2], kv[29]); /* 30 */
+	GG<r[6]> (c, d, a, b, x[7], kv[30]); /* 31 */
+	GG<r[7]> (b, c, d, a, x[12], kv[31]); /* 32 */
 
 	/* Round 3 */
-	HH (a, b, c, d, x[5], rv[32], kv[32]); /* 33 */
-	HH (d, a, b, c, x[8], rv[33], kv[33]); /* 34 */
-	HH (c, d, a, b, x[11], rv[34], kv[34]); /* 35 */
-	HH (b, c, d, a, x[14], rv[35], kv[35]); /* 36 */
-	HH (a, b, c, d, x[1], rv[36], kv[36]); /* 37 */
-	HH (d, a, b, c, x[4], rv[37], kv[37]); /* 38 */
-	HH (c, d, a, b, x[7], rv[38], kv[38]); /* 39 */
-	HH (b, c, d, a, x[10], rv[39], kv[39]); /* 40 */
-	HH (a, b, c, d, x[13], rv[40], kv[40]); /* 41 */
-	HH (d, a, b, c, x[0], rv[41], kv[41]); /* 42 */
-	HH (c, d, a, b, x[3], rv[42], kv[42]); /* 43 */
-	HH (b, c, d, a, x[6], rv[43], kv[43]); /* 44 */
-	HH (a, b, c, d, x[9], rv[44], kv[44]); /* 45 */
-	HH (d, a, b, c, x[12], rv[45], kv[45]); /* 46 */
-	HH (c, d, a, b, x[15], rv[46], kv[46]); /* 47 */
-	HH (b, c, d, a, x[2], rv[47], kv[47]); /* 48 */
+	HH<r[8]> (a, b, c, d, x[5], kv[32]); /* 33 */
+	HH<r[9]> (d, a, b, c, x[8], kv[33]); /* 34 */
+	HH<r[10]> (c, d, a, b, x[11], kv[34]); /* 35 */
+	HH<r[11]> (b, c, d, a, x[14], kv[35]); /* 36 */
+	HH<r[8]> (a, b, c, d, x[1], kv[36]); /* 37 */
+	HH<r[9]> (d, a, b, c, x[4], kv[37]); /* 38 */
+	HH<r[10]> (c, d, a, b, x[7], kv[38]); /* 39 */
+	HH<r[11]> (b, c, d, a, x[10], kv[39]); /* 40 */
+	HH<r[8]> (a, b, c, d, x[13], kv[40]); /* 41 */
+	HH<r[9]> (d, a, b, c, x[0], kv[41]); /* 42 */
+	HH<r[10]> (c, d, a, b, x[3], kv[42]); /* 43 */
+	HH<r[11]> (b, c, d, a, x[6], kv[43]); /* 44 */
+	HH<r[8]> (a, b, c, d, x[9], kv[44]); /* 45 */
+	HH<r[9]> (d, a, b, c, x[12], kv[45]); /* 46 */
+	HH<r[10]> (c, d, a, b, x[15], kv[46]); /* 47 */
+	HH<r[11]> (b, c, d, a, x[2], kv[47]); /* 48 */
 
 	/* Round 4 */
-	II (a, b, c, d, x[0], rv[48], kv[48]); /* 49 */
-	II (d, a, b, c, x[7], rv[49], kv[49]); /* 50 */
-	II (c, d, a, b, x[14], rv[50], kv[50]); /* 51 */
-	II (b, c, d, a, x[5], rv[51], kv[51]); /* 52 */
-	II (a, b, c, d, x[12], rv[52], kv[52]); /* 53 */
-	II (d, a, b, c, x[3], rv[53], kv[53]); /* 54 */
-	II (c, d, a, b, x[10], rv[54], kv[54]); /* 55 */
-	II (b, c, d, a, x[1], rv[55], kv[55]); /* 56 */
-	II (a, b, c, d, x[8], rv[56], kv[56]); /* 57 */
-	II (d, a, b, c, x[15], rv[57], kv[57]); /* 58 */
-	II (c, d, a, b, x[6], rv[58], kv[58]); /* 59 */
-	II (b, c, d, a, x[13], rv[59], kv[59]); /* 60 */
-	II (a, b, c, d, x[4], rv[60], kv[60]); /* 61 */
-	II (d, a, b, c, x[11], rv[61], kv[61]); /* 62 */
-	II (c, d, a, b, x[2], rv[62], kv[62]); /* 63 */
-	II (b, c, d, a, x[9], rv[63], kv[63]); /* 64 */
+	II<r[12]> (a, b, c, d, x[0], kv[48]); /* 49 */
+	II<r[13]> (d, a, b, c, x[7], kv[49]); /* 50 */
+	II<r[14]> (c, d, a, b, x[14], kv[50]); /* 51 */
+	II<r[15]> (b, c, d, a, x[5], kv[51]); /* 52 */
+	II<r[12]> (a, b, c, d, x[12], kv[52]); /* 53 */
+	II<r[13]> (d, a, b, c, x[3], kv[53]); /* 54 */
+	II<r[14]> (c, d, a, b, x[10], kv[54]); /* 55 */
+	II<r[15]> (b, c, d, a, x[1], kv[55]); /* 56 */
+	II<r[12]> (a, b, c, d, x[8], kv[56]); /* 57 */
+	II<r[13]> (d, a, b, c, x[15], kv[57]); /* 58 */
+	II<r[14]> (c, d, a, b, x[6], kv[58]); /* 59 */
+	II<r[15]> (b, c, d, a, x[13], kv[59]); /* 60 */
+	II<r[12]> (a, b, c, d, x[4], kv[60]); /* 61 */
+	II<r[13]> (d, a, b, c, x[11], kv[61]); /* 62 */
+	II<r[14]> (c, d, a, b, x[2], kv[62]); /* 63 */
+	II<r[15]> (b, c, d, a, x[9], kv[63]); /* 64 */
 
 	// update state
 	state[0] = _add_epi32(state[0], a);

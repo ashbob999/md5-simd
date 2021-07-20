@@ -18,6 +18,8 @@
 
 #define _sllv_epi32 _mm256_sllv_epi32
 #define _srlv_epi32 _mm256_srlv_epi32
+#define _slli_epi32 _mm256_slli_epi32
+#define _srli_epi32 _mm256_srli_epi32
 
 #define _set1_epi32 _mm256_set1_epi32
 #define _setr_epi32 _mm256_setr_epi32
@@ -47,6 +49,8 @@
 
 #define _sllv_epi32 _mm_sllv_epi32
 #define _srlv_epi32 _mm_srlv_epi32
+#define _slli_epi32 _mm_slli_epi32
+#define _srli_epi32 _mm_srli_epi32
 
 #define _set1_epi32 _mm_set1_epi32
 #define _setr_epi32 _mm_setr_epi32

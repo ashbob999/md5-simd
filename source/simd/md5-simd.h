@@ -30,68 +30,15 @@ public:
 
 	// calculate methods for N hashes
 	template<int N>
-	void calculate(std::string text[N])
-	{
-		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
-
-		std::string texts[HASH_COUNT];
-		for (int i = 0; i < N; i++)
-		{
-			texts[i] = text[i];
-		}
-		for (int rem = N; rem < HASH_COUNT; rem++)
-		{
-			texts[rem] = text[0];
-		}
-
-		calculate<HASH_COUNT>(texts);
-	}
+	void calculate(std::string text[N]);
 
 	// calculate methods for N hashes
 	template<int N>
-	void calculate(char* text[N], uint64_t length[N])
-	{
-		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
-
-		char* texts[HASH_COUNT];
-		uint64_t lengths[HASH_COUNT];
-
-		for (int i = 0; i < N; i++)
-		{
-			texts[i] = text[i];
-			lengths[i] = length[i];
-		}
-		for (int rem = N; rem < HASH_COUNT; rem++)
-		{
-			texts[rem] = text[0];
-			lengths[rem] = length[0];
-		}
-
-		calculate<HASH_COUNT>(texts, lengths);
-	}
+	void calculate(char* text[N], uint64_t length[N]);
 
 	// calculate methods for N hashes
 	template<int N>
-	void calculate(const char* text[N], uint64_t length[N])
-	{
-		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
-
-		const char* texts[HASH_COUNT];
-		uint64_t lengths[HASH_COUNT];
-
-		for (int i = 0; i < N; i++)
-		{
-			texts[i] = text[i];
-			lengths[i] = length[i];
-		}
-		for (int rem = N; rem < HASH_COUNT; rem++)
-		{
-			texts[rem] = text[0];
-			lengths[rem] = length[0];
-		}
-
-		calculate<HASH_COUNT>(texts, lengths);
-	}
+	void calculate(const char* text[N], uint64_t length[N]);
 
 	// resets the md5 data and state
 	void reset();
@@ -141,18 +88,28 @@ private:
 	static inline __reg G(__reg a, __reg b, __reg c, __reg d);
 	static inline __reg H(__reg a, __reg b, __reg c, __reg d);
 	static inline __reg I(__reg a, __reg b, __reg c, __reg d);
-	static inline __reg rotate_left(__reg x, __reg n);
-	static inline void FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
-	static inline void GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
-	static inline void HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
-	static inline void II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg s, __reg ac);
+
+	template<int N>
+	inline __reg rotate_left(__reg x);
+
+	template<int S>
+	inline void FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
+
+	template<int S>
+	inline void GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
+
+	template<int S>
+	inline void HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
+
+	template<int S>
+	inline void II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
 
 	// per-round shift amounts
 	static constexpr uint32_t r[] = {
-		7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-		5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
-		4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-		6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
+		7, 12, 17, 22,
+		5,  9, 14, 20,
+		4, 11, 16, 23,
+		6, 10, 15, 21
 	};
 
 	// Use binary integer part of the sines of integers (Radians) as constants:
@@ -178,6 +135,71 @@ private:
 	__reg rv[sizeof(r) / sizeof(*r)]; // optimized for SSE
 	__reg kv[sizeof(k) / sizeof(*k)]; // optimized for SSE
 };
+
+// calculate methods for N hashes
+template<int N>
+void MD5_SIMD::calculate(std::string text[N])
+{
+	static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
+
+	std::string texts[HASH_COUNT];
+	for (int i = 0; i < N; i++)
+	{
+		texts[i] = text[i];
+	}
+	for (int rem = N; rem < HASH_COUNT; rem++)
+	{
+		texts[rem] = text[0];
+	}
+
+	calculate<HASH_COUNT>(texts);
+}
+
+// calculate methods for N hashes
+template<int N>
+void MD5_SIMD::calculate(char* text[N], uint64_t length[N])
+{
+	static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
+
+	char* texts[HASH_COUNT];
+	uint64_t lengths[HASH_COUNT];
+
+	for (int i = 0; i < N; i++)
+	{
+		texts[i] = text[i];
+		lengths[i] = length[i];
+	}
+	for (int rem = N; rem < HASH_COUNT; rem++)
+	{
+		texts[rem] = text[0];
+		lengths[rem] = length[0];
+	}
+
+	calculate<HASH_COUNT>(texts, lengths);
+}
+
+// calculate methods for N hashes
+template<int N>
+void MD5_SIMD::calculate(const char* text[N], uint64_t length[N])
+{
+	static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
+
+	const char* texts[HASH_COUNT];
+	uint64_t lengths[HASH_COUNT];
+
+	for (int i = 0; i < N; i++)
+	{
+		texts[i] = text[i];
+		lengths[i] = length[i];
+	}
+	for (int rem = N; rem < HASH_COUNT; rem++)
+	{
+		texts[rem] = text[0];
+		lengths[rem] = length[0];
+	}
+
+	calculate<HASH_COUNT>(texts, lengths);
+}
 
 // calculate methods for 4 hashes
 template<>
@@ -315,6 +337,40 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(const char* text[MD5_SIMD:
 
 	// finish the md5 calculation
 	finalize();
+}
+
+template<int N>
+inline __reg MD5_SIMD::rotate_left(__reg x)
+{
+	return _or_si(_slli_epi32(x, N), _srli_epi32(x, 32 - N));
+}
+
+template<int S>
+inline void MD5_SIMD::FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac)
+{
+	__reg tmp = _add_epi32(a, _add_epi32(F(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left<S>(tmp));
+}
+
+template<int S>
+inline void MD5_SIMD::GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac)
+{
+	__reg tmp = _add_epi32(a, _add_epi32(G(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left<S>(tmp));
+}
+
+template<int S>
+inline void MD5_SIMD::HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac)
+{
+	__reg tmp = _add_epi32(a, _add_epi32(H(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left<S>(tmp));
+}
+
+template<int S>
+inline void MD5_SIMD::II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac)
+{
+	__reg tmp = _add_epi32(a, _add_epi32(I(a, b, c, d), _add_epi32(x, ac)));
+	a = _add_epi32(b, rotate_left<S>(tmp));
 }
 
 #endif
