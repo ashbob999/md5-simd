@@ -124,58 +124,28 @@ void MD5_SIMD::pad_input(const char* text, uint64_t length, int idx)
 
 void MD5_SIMD::update(unsigned char* input[HASH_COUNT], uint64_t length)
 {
-	// compute number of bytes mod 64
-	uint64_t index = count / 8 % BLOCK_SIZE;
+	// input should always me a multiple of 64
 
 	// Update number of bits
 	count += length << 3; // length * 8
 
-	// number of bytes we need to fill in buffer
-	uint64_t firstpart = BLOCK_SIZE - index;
-
-	uint64_t i;
-
 	// transform as many times as possible.
-	if (length >= firstpart)
+
+	// transform chunks of blocksize (64 bytes)
+	for (uint64_t i = 0; i < length; i += BLOCK_SIZE)
 	{
-		// fill buffer first, transform
+		__reg128 next[HASH_COUNT][4];
+
 		for (int hash_index = 0; hash_index < HASH_COUNT; hash_index++)
 		{
-			memcpy(buffer[hash_index] + index, input[hash_index], firstpart);
+			next[hash_index][0] = _loadu_si128((__reg128*) (input[hash_index] + i));
+			next[hash_index][1] = _loadu_si128((__reg128*) (input[hash_index] + i + 16));
+			next[hash_index][2] = _loadu_si128((__reg128*) (input[hash_index] + i + 32));
+			next[hash_index][3] = _loadu_si128((__reg128*) (input[hash_index] + i + 48));
 		}
 
-		transform(buffer);
-
-		// transform chunks of blocksize (64 bytes)
-		for (i = firstpart; i + BLOCK_SIZE <= length; i += BLOCK_SIZE)
-		{
-			__reg128 next[HASH_COUNT][4];
-
-			for (int hash_index = 0; hash_index < HASH_COUNT; hash_index++)
-			{
-				next[hash_index][0] = _loadu_si128((__reg128*) (input[0] + i));
-				next[hash_index][1] = _loadu_si128((__reg128*) (input[0] + i + 16));
-				next[hash_index][2] = _loadu_si128((__reg128*) (input[0] + i + 32));
-				next[hash_index][3] = _loadu_si128((__reg128*) (input[0] + i + 48));
-			}
-
-			transform(next);
-		}
-
-		index = 0;
+		transform(next);
 	}
-	else
-	{
-		i = 0;
-	}
-
-	int chars_left = length - i;
-
-	// buffer remaining input
-	//memcpy(&buffer[index], &input[i], chars_left);
-
-	uint8_t* data = (uint8_t*) &buffer;
-	memcpy(&data[index], &input[i], chars_left);
 }
 
 void MD5_SIMD::transform(const __reg128 block[HASH_COUNT][4])
@@ -270,12 +240,6 @@ void MD5_SIMD::transform(const __reg128 block[HASH_COUNT][4])
 
 void MD5_SIMD::finalize()
 {
-	static unsigned char padding[64] = {
-	  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	};
-
 	if (!finalized)
 	{
 		// Store state in digest
@@ -290,8 +254,6 @@ void MD5_SIMD::finalize()
 
 inline void MD5_SIMD::transpose(__reg digest[HASH_COUNT])
 {
-	//using namespace simd_functions;
-
 	// casting is needed because transpose requires floats
 #ifdef USE_256_BITS
 	__reg_ps row0 = _castsi_ps(digest[0]);
@@ -344,8 +306,6 @@ inline void MD5_SIMD::transpose(__reg digest[HASH_COUNT])
 	__reg_ps r1f = _castsi_ps(digest[1]);
 	__reg_ps r2f = _castsi_ps(digest[2]);
 	__reg_ps r3f = _castsi_ps(digest[3]);
-
-	//_MM_TRANSPOSE4_PS(r0f, r1f, r2f, r3f);
 
 	__reg_ps tmp3, tmp2, tmp1, tmp0;
 	tmp0 = _unpacklo_ps(r0f, r1f);
