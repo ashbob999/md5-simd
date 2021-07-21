@@ -47,6 +47,10 @@ public:
 	std::string hexdigest(int index) const;
 	void hexdigest(char* str, int index) const;
 
+	// checks whether the specified hash has N leading zero chars
+	template<int N>
+	inline bool check_zeroes(int index);
+
 private:
 	void init();
 
@@ -337,6 +341,50 @@ inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(const char* text[MD5_SIMD:
 
 	// finish the md5 calculation
 	finalize();
+}
+
+// checks whether the specified hash has N leading zero chars
+template<int N>
+inline bool MD5_SIMD::check_zeroes(int index)
+{
+	// https://stackoverflow.com/questions/66091420/how-to-best-emulate-the-logical-meaning-of-mm-slli-si128-128-bit-bit-shift-n
+	static_assert(N > 0 && N <= 32, "N Must be between 1 and 32.");
+
+	constexpr int shift_amount = (32 - N) * 4;
+
+#ifdef USE_256_BITS
+#else
+#endif
+	__reg128 reg = _cast_si128(digest[index]);
+
+	// shift reg by shift amount
+
+	if constexpr (shift_amount == 0)
+	{
+		// do nothing
+	}
+	else if constexpr (shift_amount % 8 == 0)
+	{
+		reg = _slli_si128(reg, shift_amount / 8);
+	}
+	else if constexpr (shift_amount > 64)
+	{
+		reg = _slli_si128(reg, 8);
+		reg = _slli_epi64(reg, shift_amount - 64);
+	}
+	else
+	{
+		__reg128 low = _slli_si128(reg, 8);
+		__reg128 high = _slli_epi64(reg, shift_amount);
+		low = _srli_epi64(low, 64 - shift_amount);
+		reg = _or_si128(low, high);
+	}
+
+
+	// check that reg is zero
+	bool zero = _textz_si128(reg, reg);
+
+	return zero;
 }
 
 template<int N>

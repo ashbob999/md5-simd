@@ -161,22 +161,10 @@ int run_simd_1x()
 
 		md5.calculate<1>(buffers, lengths);
 
-		md5.hexdigest(res, 0);
-
-		int count = 0;
-
-		for (int i = 0; i < RUN_ZERO_COUNT; i++)
+		if (md5.check_zeroes<RUN_ZERO_COUNT>(0))
 		{
-			if (res[i] == '0')
-			{
-				count++;
-				if (count >= RUN_ZERO_COUNT)
-				{
-					delete[] buffers[0];
-
-					return n;
-				}
-			}
+			delete[] buffers[0];
+			return n;
 		}
 
 		n++;
@@ -227,23 +215,12 @@ int run_simd_2x()
 
 		for (int buffer_index = 0; buffer_index < 2; buffer_index++)
 		{
-			md5.hexdigest(res, buffer_index);
-
-			int count = 0;
-
-			for (int i = 0; i < RUN_ZERO_COUNT; i++)
+			if (md5.check_zeroes<RUN_ZERO_COUNT>(buffer_index))
 			{
-				if (res[i] == '0')
-				{
-					count++;
-					if (count >= RUN_ZERO_COUNT)
-					{
-						delete[] buffers[0];
-						delete[] buffers[1];
+				delete[] buffers[0];
+				delete[] buffers[1];
 
-						return n + buffer_index;
-					}
-				}
+				return n + buffer_index;
 			}
 		}
 
@@ -298,25 +275,14 @@ int run_simd_4x()
 
 		for (int buffer_index = 0; buffer_index < 4; buffer_index++)
 		{
-			md5.hexdigest(res, buffer_index);
-
-			int count = 0;
-
-			for (int i = 0; i < RUN_ZERO_COUNT; i++)
+			if (md5.check_zeroes<RUN_ZERO_COUNT>(buffer_index))
 			{
-				if (res[i] == '0')
-				{
-					count++;
-					if (count >= RUN_ZERO_COUNT)
-					{
-						delete[] buffers[0];
-						delete[] buffers[1];
-						delete[] buffers[2];
-						delete[] buffers[3];
+				delete[] buffers[0];
+				delete[] buffers[1];
+				delete[] buffers[2];
+				delete[] buffers[3];
 
-						return n + buffer_index;
-					}
-				}
+				return n + buffer_index;
 			}
 		}
 
@@ -378,29 +344,18 @@ int run_simd_8x()
 
 		for (int buffer_index = 0; buffer_index < 8; buffer_index++)
 		{
-			md5.hexdigest(res, buffer_index);
-
-			int count = 0;
-
-			for (int i = 0; i < RUN_ZERO_COUNT; i++)
+			if (md5.check_zeroes<RUN_ZERO_COUNT>(buffer_index))
 			{
-				if (res[i] == '0')
-				{
-					count++;
-					if (count >= RUN_ZERO_COUNT)
-					{
-						delete[] buffers[0];
-						delete[] buffers[1];
-						delete[] buffers[2];
-						delete[] buffers[3];
-						delete[] buffers[4];
-						delete[] buffers[5];
-						delete[] buffers[6];
-						delete[] buffers[7];
+				delete[] buffers[0];
+				delete[] buffers[1];
+				delete[] buffers[2];
+				delete[] buffers[3];
+				delete[] buffers[4];
+				delete[] buffers[5];
+				delete[] buffers[6];
+				delete[] buffers[7];
 
-						return n + buffer_index;
-					}
-				}
+				return n + buffer_index;
 			}
 		}
 

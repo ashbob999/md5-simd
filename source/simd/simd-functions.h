@@ -57,7 +57,7 @@
 #define _setzero_si _mm_setzero_si128
 #define _i32gather_epi32 _mm_i32gather_epi32
 
-#define _cast_128si __m128i
+#define _cast_si128 __m128i
 #define _castsi_ps _mm_castsi128_ps
 #define _castps_si _mm_castps_si128
 
@@ -72,5 +72,10 @@
 #define _loadu_si128 _mm_loadu_si128
 #define _storeu_si128 _mm_storeu_si128
 #define _setzero_si128 _mm_setzero_si128
+#define _slli_si128 _mm_slli_si128
+#define _slli_epi64 _mm_slli_epi64
+#define _srli_epi64 _mm_srli_epi64
+#define _or_si128 _mm_or_si128
+#define _textz_si128 _mm_testz_si128
 
 #endif
