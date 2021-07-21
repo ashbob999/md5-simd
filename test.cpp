@@ -8,6 +8,7 @@
 #include <iomanip>
 
 using namespace std;
+using md5_simd::MD5_SIMD;
 
 constexpr int TEST_STRING_LENGTH = 43;
 constexpr int RUN_INIT_STRING_LENGTH = 6;
