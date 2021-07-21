@@ -133,6 +133,8 @@ int run_simd_1x()
 	char* buffers[1];
 	buffers[0] = new char[128];
 
+	uint64_t lengths[1];
+
 	const char* buffer = "abcdef";
 
 	int n = 1;
@@ -141,8 +143,6 @@ int run_simd_1x()
 
 	while (true)
 	{
-		uint64_t lengths[1];
-
 		int num = n;
 		int digits = digit_count(num);
 
@@ -158,8 +158,6 @@ int run_simd_1x()
 			num /= 10;
 			index--;
 		}
-
-		char res[32];
 
 		md5.calculate<1>(buffers, lengths);
 
@@ -181,6 +179,8 @@ int run_simd_2x()
 	buffers[0] = new char[128];
 	buffers[1] = new char[128];
 
+	uint64_t lengths[2];
+
 	const char* buffer = "abcdef";
 
 	int n = 1;
@@ -189,9 +189,6 @@ int run_simd_2x()
 
 	while (true)
 	{
-
-		uint64_t lengths[2];
-
 		for (int i = 0; i < 2; i++)
 		{
 			int num = n + i;
@@ -210,8 +207,6 @@ int run_simd_2x()
 				index--;
 			}
 		}
-
-		char res[32];
 
 		md5.calculate<2>(buffers, lengths);
 
@@ -241,6 +236,8 @@ int run_simd_4x()
 	buffers[2] = new char[128];
 	buffers[3] = new char[128];
 
+	uint64_t lengths[4];
+
 	const char* buffer = "abcdef";
 
 	int n = 1;
@@ -249,9 +246,6 @@ int run_simd_4x()
 
 	while (true)
 	{
-
-		uint64_t lengths[4];
-
 		for (int i = 0; i < 4; i++)
 		{
 			int num = n + i;
@@ -270,8 +264,6 @@ int run_simd_4x()
 				index--;
 			}
 		}
-
-		char res[32];
 
 		md5.calculate<4>(buffers, lengths);
 
@@ -310,6 +302,8 @@ int run_simd_8x()
 	buffers[6] = new char[128];
 	buffers[7] = new char[128];
 
+	uint64_t lengths[8];
+
 	const char* buffer = "abcdef";
 
 	int n = 1;
@@ -318,9 +312,6 @@ int run_simd_8x()
 
 	while (true)
 	{
-
-		uint64_t lengths[8];
-
 		for (int i = 0; i < 8; i++)
 		{
 			int num = n + i;
@@ -339,8 +330,6 @@ int run_simd_8x()
 				index--;
 			}
 		}
-
-		char res[32];
 
 		md5.calculate<8>(buffers, lengths);
 
@@ -361,7 +350,7 @@ int run_simd_8x()
 			}
 		}
 
-		n += 4;
+		n += 8;
 	}
 
 	delete[] buffers[0];
@@ -413,8 +402,8 @@ int main()
 
 	// test for correct running
 	bool run_original_result = run_original() == RUN_RESULT;
-	bool run_simd_1x_result = run_simd_4x() == RUN_RESULT;
-	bool run_simd_2x_result = run_simd_4x() == RUN_RESULT;
+	bool run_simd_1x_result = run_simd_1x() == RUN_RESULT;
+	bool run_simd_2x_result = run_simd_2x() == RUN_RESULT;
 	bool run_simd_4x_result = run_simd_4x() == RUN_RESULT;
 #ifdef USE_256_BITS
 	bool run_simd_8x_result = run_simd_8x() == RUN_RESULT;
@@ -440,7 +429,7 @@ int main()
 	cout << endl;
 
 	// time the functions
-	int reps = 10;
+	int reps = 500;
 
 	double time_original = time(reps, run_original);
 	double time_simd_1x = time(reps, run_simd_1x);

@@ -94,19 +94,19 @@ private:
 	static inline __reg I(__reg a, __reg b, __reg c, __reg d);
 
 	template<int N>
-	inline __reg rotate_left(__reg x);
+	static inline __reg rotate_left(__reg x);
 
 	template<int S>
-	inline void FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
+	static inline void FF(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
 
 	template<int S>
-	inline void GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
+	static inline void GG(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
 
 	template<int S>
-	inline void HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
+	static inline void HH(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
 
 	template<int S>
-	inline void II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
+	static inline void II(__reg& a, __reg b, __reg c, __reg d, __reg x, __reg ac);
 
 	// per-round shift amounts
 	static constexpr uint32_t r[] = {
@@ -352,9 +352,6 @@ inline bool MD5_SIMD::check_zeroes(int index)
 
 	constexpr int shift_amount = (32 - N) * 4;
 
-#ifdef USE_256_BITS
-#else
-#endif
 	__reg128 reg = _cast_si128(digest[index]);
 
 	// shift reg by shift amount
@@ -387,6 +384,7 @@ inline bool MD5_SIMD::check_zeroes(int index)
 	return zero;
 }
 
+// low level logic operations
 template<int N>
 inline __reg MD5_SIMD::rotate_left(__reg x)
 {

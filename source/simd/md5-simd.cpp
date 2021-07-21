@@ -256,6 +256,8 @@ inline void MD5_SIMD::transpose(__reg digest[HASH_COUNT])
 {
 	// casting is needed because transpose requires floats
 #ifdef USE_256_BITS
+	// https ://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2
+
 	__reg_ps row0 = _castsi_ps(digest[0]);
 	__reg_ps row1 = _castsi_ps(digest[1]);
 	__reg_ps row2 = _castsi_ps(digest[2]);
