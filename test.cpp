@@ -14,6 +14,8 @@ constexpr int RUN_INIT_STRING_LENGTH = 6;
 constexpr int RUN_ZERO_COUNT = 4;
 constexpr int RUN_RESULT = 31556;
 
+constexpr char char_map[10] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+
 inline int digit_count(int number)
 {
 	if (number < 10) return 1;
@@ -98,7 +100,7 @@ int run_original()
 
 		while (num > 0)
 		{
-			input_buffer[index] = (char) ('0' + (num % 10));
+			input_buffer[index] = char_map[num % 10];
 			num /= 10;
 			index--;
 		}
@@ -152,7 +154,7 @@ int run_simd_1x()
 		int index = RUN_INIT_STRING_LENGTH + digits - 1;
 		while (num > 0)
 		{
-			buffers[0][index] = (char) ('0' + (num % 10));
+			buffers[0][index] = char_map[num % 10];
 			num /= 10;
 			index--;
 		}
@@ -203,7 +205,7 @@ int run_simd_2x()
 			int index = RUN_INIT_STRING_LENGTH + digits - 1;
 			while (num > 0)
 			{
-				buffers[i][index] = (char) ('0' + (num % 10));
+				buffers[i][index] = char_map[num % 10];
 				num /= 10;
 				index--;
 			}
@@ -263,7 +265,7 @@ int run_simd_4x()
 			int index = RUN_INIT_STRING_LENGTH + digits - 1;
 			while (num > 0)
 			{
-				buffers[i][index] = (char) ('0' + (num % 10));
+				buffers[i][index] = char_map[num % 10];
 				num /= 10;
 				index--;
 			}
@@ -332,7 +334,7 @@ int run_simd_8x()
 			int index = RUN_INIT_STRING_LENGTH + digits - 1;
 			while (num > 0)
 			{
-				buffers[i][index] = (char) ('0' + (num % 10));
+				buffers[i][index] = char_map[num % 10];
 				num /= 10;
 				index--;
 			}
