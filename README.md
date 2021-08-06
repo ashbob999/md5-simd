@@ -11,21 +11,26 @@ Make sure to compile the source with `/02` (msvc) or `-O3` (gcc) for best perfor
 
 ## Benchmarks
 `SIMD (Nx)` means it is doing `N` hashes simultaneously.
+
+The non-bracketed values are the `128-bit` version, and the bracketed values are the `256-bit` version.
+Original values are the same for both versions.
 #### MSVC
 |Version  |Time Per Iteration (us)|Speed Multiplier|
 |:-------:|:---------------------:|:--------------:|
-|Original |6999.275               |1x              |
-|SIMD (1x)|9000.407               |0.78x           |
-|SIMD (2x)|4895.738               |1.43x           |
-|SIMD (4x)|2974.486               |2.35x           |
+|Original |7119                   |1x              |
+|SIMD (1x)|7452 (9447)            |0.96x (0.75x)   |
+|SIMD (2x)|3892 (4791)            |1.83x (1.49x)   |
+|SIMD (4x)|2102 (2582)            |3.39x (2.76x)   |
+|SIMD (8x)|N/A (1432)             |N/A (4.97x)     |
 
 #### GCC (wsl)
 |Version  |Time Per Iteration (us)|Speed Multiplier|
 |:-------:|:---------------------:|:--------------:|
-|Original |7294.468               |1x              |
-|SIMD (1x)|8912.532               |0.82x           |
-|SIMD (2x)|4869.745               |1.5x            |
-|SIMD (4x)|2984.686               |2.44x           |
+|Original |6260                   |1x              |
+|SIMD (1x)|7290 (9860)            |0.86x (0.63x)   |
+|SIMD (2x)|3776 (5211)            |1.66x (1.2x)    |
+|SIMD (4x)|2022 (2731)            |3.1x (2.29x)    |
+|SIMD (8x)|N/A (1470)             |N/A (4.26x)     |
 
 ## Contents
 #### original
