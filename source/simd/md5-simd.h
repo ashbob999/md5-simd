@@ -353,7 +353,9 @@ namespace md5_simd
 		// https://stackoverflow.com/questions/66091420/how-to-best-emulate-the-logical-meaning-of-mm-slli-si128-128-bit-bit-shift-n
 		static_assert(N > 0 && N <= 32, "N Must be between 1 and 32.");
 
-		constexpr int shift_amount = (32 - N) * 4;
+		constexpr int byte_count = N % 2 == 0 ? N : N + 1;
+
+		constexpr int shift_amount = (32 - byte_count) * 4;
 
 		__reg128 reg = _cast_si128(digest[index]);
 
@@ -380,6 +382,10 @@ namespace md5_simd
 			reg = _or_si128(low, high);
 		}
 
+		if constexpr (byte_count != N)
+		{
+			reg = _mm_and_si128(reg, _mm_setr_epi8(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF0));
+		}
 
 		// check that reg is zero
 		bool zero = _textz_si128(reg, reg);

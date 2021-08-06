@@ -77,5 +77,6 @@
 #define _srli_epi64 _mm_srli_epi64
 #define _or_si128 _mm_or_si128
 #define _textz_si128 _mm_testz_si128
+#define _setr128_epi8 _mm_setr_epi8
 
 #endif
