@@ -4,22 +4,22 @@
 namespace md5_simd
 {
 
-	inline __reg MD5_SIMD::F(__reg a, __reg b, __reg c, __reg d)
+	inline __reg MD5_SIMD::F(__reg, __reg b, __reg c, __reg d)
 	{
 		return _xor_si(d, _and_si(b, _xor_si(c, d)));
 	}
 
-	inline __reg MD5_SIMD::G(__reg a, __reg b, __reg c, __reg d)
+	inline __reg MD5_SIMD::G(__reg, __reg b, __reg c, __reg d)
 	{
 		return _xor_si(c, _and_si(d, _xor_si(b, c)));
 	}
 
-	inline __reg MD5_SIMD::H(__reg a, __reg b, __reg c, __reg d)
+	inline __reg MD5_SIMD::H(__reg, __reg b, __reg c, __reg d)
 	{
 		return _xor_si(b, _xor_si(c, d));
 	}
 
-	inline __reg MD5_SIMD::I(__reg a, __reg b, __reg c, __reg d)
+	inline __reg MD5_SIMD::I(__reg, __reg b, __reg c, __reg d)
 	{
 		return _xor_si(c, _or_si(b, _xor_si(d, _set1_epi32(0xFFFFFFFF))));
 	}
@@ -55,14 +55,9 @@ namespace md5_simd
 
 		int i;
 
-		for (i = 0; i < (sizeof(rv) / sizeof(*rv)); i++)
-		{
-			rv[i] = _set1_epi32(r[i]);
-		}
-
 		for (i = 0; i < (sizeof(kv) / sizeof(*kv)); i++)
 		{
-			kv[i] = _set1_epi32(k[i]);
+			kv[i] = _set1_epi32((int) k[i]);
 		}
 
 		for (int hash_index = 0; hash_index < HASH_COUNT; hash_index++)
@@ -329,7 +324,7 @@ namespace md5_simd
 #endif
 	}
 
-	inline void MD5_SIMD::decode(__reg output[16], const __reg128 input[HASH_COUNT][4], uint64_t len)
+	inline void MD5_SIMD::decode(__reg output[16], const __reg128 input[HASH_COUNT][4], uint64_t)
 	{
 		// 64 x 8-bits => 16 x 32-bits for each hash
 

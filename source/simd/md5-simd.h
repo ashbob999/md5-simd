@@ -24,6 +24,7 @@ namespace md5_simd
 		MD5_SIMD(uint64_t buffer_size);
 
 		// stop the md5 class being copied/moved
+		MD5_SIMD operator=(const MD5_SIMD&) = delete;
 		MD5_SIMD(MD5_SIMD&) = delete;
 		MD5_SIMD(const MD5_SIMD&) = delete;
 		MD5_SIMD(MD5_SIMD&&) = delete;
@@ -70,23 +71,14 @@ namespace md5_simd
 		static inline void decode(__reg output[16], const __reg128 input[HASH_COUNT][4], uint64_t len);
 		static inline void encode(__reg* output, const __reg* input, uint64_t len);
 
-		bool finalized;
-
-		// bytes that didn't fit in last 64 byte chunk
-		__reg128 buffer[HASH_COUNT][(8 * BLOCK_SIZE) / 128];
-
-		// counter for number of bits
-		uint64_t count;
-
 		// state per md5 is stored vertically (split into 32 bit chunks) (all a states are in state[0]) (a0 = state[0][0..31], b0 = state[1][0..31] and so on)
 		__reg state[4];
 
 		// stores the result, as 32 x 4 bits (or 16 uint8_t's) (hash 0 = digest[0])
 		__reg digest[HASH_COUNT];
 
-		// buffers to store the padded inputs
-		unsigned char* input_buffers[HASH_COUNT];
-		uint64_t input_buffer_size = 64;
+		// bytes that didn't fit in last 64 byte chunk
+		__reg128 buffer[HASH_COUNT][(8 * BLOCK_SIZE) / 128];
 
 		static constexpr char HEX_MAPPING[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
@@ -139,8 +131,17 @@ namespace md5_simd
 			0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 		};
 
-		__reg rv[sizeof(r) / sizeof(*r)]; // optimized for SSE
 		__reg kv[sizeof(k) / sizeof(*k)]; // optimized for SSE
+
+		// counter for number of bits
+		uint64_t count;
+
+		// buffers to store the padded inputs
+		uint64_t input_buffer_size = 64;
+		unsigned char* input_buffers[HASH_COUNT];
+		
+
+		bool finalized;
 	};
 
 	// calculate methods for N hashes

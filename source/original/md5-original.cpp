@@ -34,12 +34,12 @@ documentation and/or software.
 // F, G, H and I are basic MD5 functions.
 inline uint32_t MD5::F(uint32_t x, uint32_t y, uint32_t z)
 {
-	return x & y | ~x & z;
+	return (x & y) | (~x & z);
 }
 
 inline uint32_t MD5::G(uint32_t x, uint32_t y, uint32_t z)
 {
-	return x & z | y & ~z;
+	return (x & z) | (y & ~z);
 }
 
 inline uint32_t MD5::H(uint32_t x, uint32_t y, uint32_t z)
@@ -53,7 +53,7 @@ inline uint32_t MD5::I(uint32_t x, uint32_t y, uint32_t z)
 }
 
 // rotate_left rotates x left n bits.
-inline uint32_t MD5::rotate_left(uint32_t x, int n)
+inline uint32_t MD5::rotate_left(uint32_t x, uint32_t n)
 {
 	return (x << n) | (x >> (32 - n));
 }
@@ -103,7 +103,7 @@ void MD5::calculate(std::string text)
 {
 	reset();
 
-	update(text.c_str(), text.length());
+	update(text.c_str(), (size_type) text.length());
 	finalize();
 }
 
@@ -193,7 +193,7 @@ void MD5::update(const unsigned char* input, size_type length)
 	}
 
 	// buffer remaining input
-	memcpy(&buffer[index], &input[i], length - i);
+	memcpy(&buffer[index], &input[i], (size_t) length - i);
 }
 
 // apply MD5 algo on a block
@@ -345,7 +345,7 @@ std::string MD5::hexdigest() const
 	}
 
 	char buf[33];
-	for (int i = 0; i < 16; i++)
+	for (uint8_t i = 0; i < 16; i++)
 	{
 		sprintf(buf + i * 2, "%02x", digest[i]);
 	}
