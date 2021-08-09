@@ -160,7 +160,7 @@ namespace md5_simd
 	template<int N, bool check_lengths>
 	void MD5_SIMD::calculate(std::string text[N])
 	{
-		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
+		static_assert(N >= 1 && N <= HASH_COUNT, "N must be <= the max number of hashes.");
 
 		std::string texts[HASH_COUNT];
 		for (int i = 0; i < N; i++)
@@ -179,7 +179,7 @@ namespace md5_simd
 	template<int N, bool check_lengths>
 	void MD5_SIMD::calculate(char* text[N], uint64_t length[N])
 	{
-		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
+		static_assert(N >= 1 && N <= HASH_COUNT, "N must be <= the max number of hashes.");
 
 		char* texts[HASH_COUNT];
 		uint64_t lengths[HASH_COUNT];
@@ -202,7 +202,7 @@ namespace md5_simd
 	template<int N, bool check_lengths>
 	void MD5_SIMD::calculate(const char* text[N], uint64_t length[N])
 	{
-		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
+		static_assert(N >= 1 && N <= HASH_COUNT, "N must be <= the max number of hashes.");
 
 		const char* texts[HASH_COUNT];
 		uint64_t lengths[HASH_COUNT];
