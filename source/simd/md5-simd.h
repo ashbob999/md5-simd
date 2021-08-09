@@ -251,9 +251,8 @@ namespace md5_simd
 	}
 
 	// calculate methods for max hashes, without length checks
-	template<>
-	inline void [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
-		MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(std::string text[MD5_SIMD::HASH_COUNT])
+	template<> [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
+		inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(std::string text[MD5_SIMD::HASH_COUNT])
 	{
 		// reset data
 		reset();
@@ -307,9 +306,8 @@ namespace md5_simd
 	}
 
 	// calculate methods for max hashes, without length checks
-	template<>
-	inline void [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
-		MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	template<> [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
+		inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
 	{
 		// reset data
 		reset();
@@ -363,9 +361,8 @@ namespace md5_simd
 	}
 
 	// calculate methods for max hashes, without length checks
-	template<>
-	inline void [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
-		MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(const char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	template<> [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
+		inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(const char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
 	{
 		// reset data
 		reset();

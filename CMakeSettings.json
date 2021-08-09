@@ -13,7 +13,7 @@
 			"variables": [
 				{
 					"name": "CMAKE_CXX_FLAGS_DEBUG",
-					"value": "/Zi /Ob0 /Od /RTC1 /Wall /arch:AVX2 /Qpar /favor:INTEL64",
+					"value": "/Zi /Ob0 /Od /RTC1 /Wall /wd4820 /wd4514 /arch:AVX2 /Qpar /favor:INTEL64",
 					"type": "STRING"
 				}
 			],
@@ -32,7 +32,7 @@
 			"variables": [
 				{
 					"name": "CMAKE_CXX_FLAGS_RELEASE",
-					"value": "/O2 /Ob2 /GL /Ob3 /Wall /arch:AVX2 /Qpar /favor:INTEL64",
+					"value": "/O2 /Ob2 /GL /Ob3 /Wall /wd4820 /wd4514 /arch:AVX2 /Qpar /favor:INTEL64",
 					"type": "STRING"
 				}
 			],

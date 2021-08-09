@@ -53,7 +53,7 @@ namespace md5_simd
 	{
 		reset();
 
-		int i;
+		unsigned int i;
 
 		for (i = 0; i < (sizeof(kv) / sizeof(*kv)); i++)
 		{

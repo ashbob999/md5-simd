@@ -65,7 +65,7 @@ bool test_simd()
 
 	md5.calculate<4>(arr, lengths);
 
-	char buf[33];
+	[[maybe_unused]] char buf[33];
 	buf[32] = '\0';
 
 	md5.hexdigest(buf, 0);
@@ -108,7 +108,7 @@ int run_original()
 
 		int count = 0;
 
-		md5.calculate(input_buffer, RUN_INIT_STRING_LENGTH + digits);
+		md5.calculate(input_buffer, (MD5::size_type) (RUN_INIT_STRING_LENGTH + digits));
 
 		md5.hexdigest(output_buffer);
 		//cout << output_buffer << endl;
@@ -147,7 +147,7 @@ int run_simd_1x()
 		int num = n;
 		int digits = digit_count(num);
 
-		lengths[0] = RUN_INIT_STRING_LENGTH + digits;
+		lengths[0] = (uint64_t) RUN_INIT_STRING_LENGTH + digits;
 
 		buffers[0][RUN_INIT_STRING_LENGTH + digits] = '\0';
 		memcpy(buffers[0], buffer, RUN_INIT_STRING_LENGTH);
@@ -195,7 +195,7 @@ int run_simd_2x()
 			int num = n + i;
 			int digits = digit_count(num);
 
-			lengths[i] = RUN_INIT_STRING_LENGTH + digits;
+			lengths[i] = (uint64_t) RUN_INIT_STRING_LENGTH + digits;
 
 			buffers[i][RUN_INIT_STRING_LENGTH + digits] = '\0';
 			memcpy(buffers[i], buffer, RUN_INIT_STRING_LENGTH);
@@ -252,7 +252,7 @@ int run_simd_4x()
 			int num = n + i;
 			int digits = digit_count(num);
 
-			lengths[i] = RUN_INIT_STRING_LENGTH + digits;
+			lengths[i] = (uint64_t) RUN_INIT_STRING_LENGTH + digits;
 
 			buffers[i][RUN_INIT_STRING_LENGTH + digits] = '\0';
 			memcpy(buffers[i], buffer, RUN_INIT_STRING_LENGTH);
@@ -318,7 +318,7 @@ int run_simd_8x()
 			int num = n + i;
 			int digits = digit_count(num);
 
-			lengths[i] = RUN_INIT_STRING_LENGTH + digits;
+			lengths[i] = (uint64_t) RUN_INIT_STRING_LENGTH + digits;
 
 			buffers[i][RUN_INIT_STRING_LENGTH + digits] = '\0';
 			memcpy(buffers[i], buffer, RUN_INIT_STRING_LENGTH);
@@ -332,7 +332,7 @@ int run_simd_8x()
 			}
 		}
 
-		md5.calculate<8>(buffers, lengths);
+		md5.calculate<8, false>(buffers, lengths);
 
 		for (int buffer_index = 0; buffer_index < 8; buffer_index++)
 		{
@@ -371,7 +371,7 @@ double time(int reps, int(*fn)())
 
 	for (int i = 0; i < reps; i++)
 	{
-		auto r = fn();
+		[[maybe_unused]] auto r = fn();
 	}
 
 	auto et = chrono::steady_clock::now();
