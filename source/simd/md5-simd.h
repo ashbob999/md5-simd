@@ -33,15 +33,15 @@ namespace md5_simd
 		~MD5_SIMD();
 
 		// calculate methods for N hashes
-		template<int N>
+		template<int N, bool check_lengths = true>
 		void calculate(std::string text[N]);
 
 		// calculate methods for N hashes
-		template<int N>
+		template<int N, bool check_lengths = true>
 		void calculate(char* text[N], uint64_t length[N]);
 
 		// calculate methods for N hashes
-		template<int N>
+		template<int N, bool check_lengths = true>
 		void calculate(const char* text[N], uint64_t length[N]);
 
 		// resets the md5 data and state
@@ -65,6 +65,18 @@ namespace md5_simd
 		// stores 64 * 8-bits( block[hash_index][chunk_index] )
 		void transform(const __reg128 block[HASH_COUNT][4]);
 		void finalize();
+
+		// check the other inputs to make sure they use the same number of 64-char chunks
+		inline void check_lengths(uint64_t index, std::string text[]);
+		inline void check_lengths(uint64_t index, uint64_t length[]);
+
+		// expand the input buffers if they are not big enough
+		inline void expand_buffers(uint64_t total_chars);
+
+		// pad each input
+		inline void pad_all_inputs(std::string text[]);
+		inline void pad_all_inputs(char* text[], uint64_t length[]);
+		inline void pad_all_inputs(const char* text[], uint64_t length[]);
 
 		static inline void transpose(__reg digest[HASH_COUNT]);
 
@@ -139,13 +151,13 @@ namespace md5_simd
 		// buffers to store the padded inputs
 		uint64_t input_buffer_size = 64;
 		unsigned char* input_buffers[HASH_COUNT];
-		
+
 
 		bool finalized;
 	};
 
 	// calculate methods for N hashes
-	template<int N>
+	template<int N, bool check_lengths>
 	void MD5_SIMD::calculate(std::string text[N])
 	{
 		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
@@ -164,7 +176,7 @@ namespace md5_simd
 	}
 
 	// calculate methods for N hashes
-	template<int N>
+	template<int N, bool check_lengths>
 	void MD5_SIMD::calculate(char* text[N], uint64_t length[N])
 	{
 		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
@@ -187,7 +199,7 @@ namespace md5_simd
 	}
 
 	// calculate methods for N hashes
-	template<int N>
+	template<int N, bool check_lengths>
 	void MD5_SIMD::calculate(const char* text[N], uint64_t length[N])
 	{
 		static_assert(N <= HASH_COUNT, "N must be <= the max number of hashes.");
@@ -209,9 +221,9 @@ namespace md5_simd
 		calculate<HASH_COUNT>(texts, lengths);
 	}
 
-	// calculate methods for 4 hashes
+	// calculate methods for max hashes, with length checks
 	template<>
-	inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(std::string text[MD5_SIMD::HASH_COUNT])
+	inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, true>(std::string text[MD5_SIMD::HASH_COUNT])
 	{
 		// reset data
 		reset();
@@ -220,6 +232,165 @@ namespace md5_simd
 		uint64_t index = (text[0].length() / 64) + (text[0].length() % 64 < 56 ? 0 : 1);
 
 		// check the other inputs to make sure they use the same number of 64-char chunks
+		check_lengths(index, text);
+
+		// calculate how many chars the inputs will each require (they should all require the same)
+		uint64_t total_chars = index * 64 + 64;
+
+		// expand the input buffers if they are not big enough
+		expand_buffers(total_chars);
+
+		// pad each input
+		pad_all_inputs(text);
+
+		// update the state
+		update(input_buffers, total_chars);
+
+		// finish the md5 calculation
+		finalize();
+	}
+
+	// calculate methods for max hashes, without length checks
+	template<>
+	inline void [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
+		MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(std::string text[MD5_SIMD::HASH_COUNT])
+	{
+		// reset data
+		reset();
+
+		// get number of 64-char chunks the input will make
+		uint64_t index = (text[0].length() / 64) + (text[0].length() % 64 < 56 ? 0 : 1);
+
+		// calculate how many chars the inputs will each require (they should all require the same)
+		uint64_t total_chars = index * 64 + 64;
+
+		// expand the input buffers if they are not big enough
+		expand_buffers(total_chars);
+
+		// pad each input
+		pad_all_inputs(text);
+
+		// update the state
+		update(input_buffers, total_chars);
+
+		// finish the md5 calculation
+		finalize();
+	}
+
+	// calculate methods for max hashes, with length checks
+	template<>
+	inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, true>(char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	{
+		// reset data
+		reset();
+
+		// get number of 64-char chunks the input will make
+		uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
+
+		// check the other inputs to make sure they use the same number of 64-char chunks
+		check_lengths(index, length);
+
+		// calculate how many chars the inputs will each require (they should all require the same)
+		uint64_t total_chars = index * 64 + 64;
+
+		// expand the input buffers if they are not big enough
+		expand_buffers(total_chars);
+
+		// pad each input
+		pad_all_inputs(text, length);
+
+		// update the state
+		update(input_buffers, total_chars);
+
+		// finish the md5 calculation
+		finalize();
+	}
+
+	// calculate methods for max hashes, without length checks
+	template<>
+	inline void [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
+		MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	{
+		// reset data
+		reset();
+
+		// get number of 64-char chunks the input will make
+		uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
+
+		// calculate how many chars the inputs will each require (they should all require the same)
+		uint64_t total_chars = index * 64 + 64;
+
+		// expand the input buffers if they are not big enough
+		expand_buffers(total_chars);
+
+		// pad each input
+		pad_all_inputs(text, length);
+
+		// update the state
+		update(input_buffers, total_chars);
+
+		// finish the md5 calculation
+		finalize();
+	}
+
+	// calculate methods for max hashes, with length checks
+	template<>
+	inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, true>(const char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	{
+		// reset data
+		reset();
+
+		// get number of 64-char chunks the input will make
+		uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
+
+		// check the other inputs to make sure they use the same number of 64-char chunks
+		check_lengths(index, length);
+
+		// calculate how many chars the inputs will each require (they should all require the same)
+		uint64_t total_chars = index * 64 + 64;
+
+		// expand the input buffers if they are not big enough
+		expand_buffers(total_chars);
+
+		// pad each input
+		pad_all_inputs(text, length);
+
+		// update the state
+		update(input_buffers, total_chars);
+
+		// finish the md5 calculation
+		finalize();
+	}
+
+	// calculate methods for max hashes, without length checks
+	template<>
+	inline void [[deprecated("Length checking is off: This may result in runtime-errors/undefined behavior")]]
+		MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT, false>(const char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	{
+		// reset data
+		reset();
+
+		// get number of 64-char chunks the input will make
+		uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
+
+		// calculate how many chars the inputs will each require (they should all require the same)
+		uint64_t total_chars = index * 64 + 64;
+
+		// expand the input buffers if they are not big enough
+		expand_buffers(total_chars);
+
+		// pad each input
+		pad_all_inputs(text, length);
+
+		// update the state
+		update(input_buffers, total_chars);
+
+		// finish the md5 calculation
+		finalize();
+	}
+
+	inline void MD5_SIMD::check_lengths(uint64_t index, std::string text[])
+	{
 		for (int i = 1; i < HASH_COUNT; i++)
 		{
 			uint64_t tmp_index = (text[i].length() / 64) + (text[i].length() % 64 < 56 ? 0 : 1);
@@ -228,11 +399,22 @@ namespace md5_simd
 				throw std::runtime_error("Lengths must be similar");
 			}
 		}
+	}
 
-		// calculate how many chars the inputs will each require (they should all require the same)
-		uint64_t total_chars = index * 64 + 64;
+	inline void MD5_SIMD::check_lengths(uint64_t index, uint64_t length[])
+	{
+		for (int i = 1; i < HASH_COUNT; i++)
+		{
+			uint64_t tmp_index = (length[i] / 64) + (length[i] % 64 < 56 ? 0 : 1);
+			if (index != tmp_index)
+			{
+				throw std::runtime_error("Lengths must be similar");
+			}
+		}
+	}
 
-		// expand the input buffers if they are not big enough
+	inline void MD5_SIMD::expand_buffers(uint64_t total_chars)
+	{
 		if (total_chars > input_buffer_size)
 		{
 			for (int i = 0; i < HASH_COUNT; i++)
@@ -241,110 +423,30 @@ namespace md5_simd
 				input_buffers[i] = new unsigned char[total_chars];
 			}
 		}
+	}
 
-		// pad each input
+	inline void MD5_SIMD::pad_all_inputs(std::string text[])
+	{
 		for (int i = 0; i < HASH_COUNT; i++)
 		{
 			pad_input(text[i].c_str(), text[i].length(), i);
 		}
-
-		// update the state
-		update(input_buffers, total_chars);
-
-		// finish the md5 calculation
-		finalize();
 	}
 
-	// calculate methods for 4 hashes
-	template<>
-	inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	inline void MD5_SIMD::pad_all_inputs(char* text[], uint64_t length[])
 	{
-		// reset data
-		reset();
-
-		// get number of 64-char chunks the input will make
-		uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
-
-		// check the other inputs to make sure they use the same number of 64-char chunks
-		for (int i = 1; i < HASH_COUNT; i++)
-		{
-			uint64_t tmp_index = (length[i] / 64) + (length[i] % 64 < 56 ? 0 : 1);
-			if (index != tmp_index)
-			{
-				throw std::runtime_error("Lengths must be similar");
-			}
-		}
-
-		// calculate how many chars the inputs will each require (they should all require the same)
-		uint64_t total_chars = index * 64 + 64;
-
-		// expand the input buffers if they are not big enough
-		if (total_chars > input_buffer_size)
-		{
-			for (int i = 0; i < HASH_COUNT; i++)
-			{
-				delete[] input_buffers[i];
-				input_buffers[i] = new unsigned char[total_chars];
-			}
-		}
-
-		// pad each input
 		for (int i = 0; i < HASH_COUNT; i++)
 		{
 			pad_input(text[i], length[i], i);
 		}
-
-		// update the state
-		update(input_buffers, total_chars);
-
-		// finish the md5 calculation
-		finalize();
 	}
 
-	// calculate methods for 4 hashes
-	template<>
-	inline void MD5_SIMD::calculate<MD5_SIMD::HASH_COUNT>(const char* text[MD5_SIMD::HASH_COUNT], uint64_t length[MD5_SIMD::HASH_COUNT])
+	inline void MD5_SIMD::pad_all_inputs(const char* text[], uint64_t length[])
 	{
-		// reset data
-		reset();
-
-		// get number of 64-char chunks the input will make
-		uint64_t index = (length[0] / 64) + (length[0] % 64 < 56 ? 0 : 1);
-
-		// check the other inputs to make sure they use the same number of 64-char chunks
-		for (int i = 1; i < HASH_COUNT; i++)
-		{
-			uint64_t tmp_index = (length[i] / 64) + (length[i] % 64 < 56 ? 0 : 1);
-			if (index != tmp_index)
-			{
-				throw std::runtime_error("Lengths must be similar");
-			}
-		}
-
-		// calculate how many chars the inputs will each require (they should all require the same)
-		uint64_t total_chars = index * 64 + 64;
-
-		// expand the input buffers if they are not big enough
-		if (total_chars > input_buffer_size)
-		{
-			for (int i = 0; i < HASH_COUNT; i++)
-			{
-				delete[] input_buffers[i];
-				input_buffers[i] = new unsigned char[total_chars];
-			}
-		}
-
-		// pad each input
 		for (int i = 0; i < HASH_COUNT; i++)
 		{
 			pad_input(text[i], length[i], i);
 		}
-
-		// update the state
-		update(input_buffers, total_chars);
-
-		// finish the md5 calculation
-		finalize();
 	}
 
 	// checks whether the specified hash has N leading zero chars
@@ -389,7 +491,7 @@ namespace md5_simd
 		}
 
 		// check that reg is zero
-		bool zero = _textz_si128(reg, reg);
+		bool zero = (bool) _textz_si128(reg, reg);
 
 		return zero;
 	}
