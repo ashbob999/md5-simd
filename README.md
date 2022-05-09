@@ -2,7 +2,7 @@
 An md5 implementation using **AVX2** instructions.
 
 Built from an [existing md5 implementation](http://www.zedwood.com/article/cpp-md5-function).
-Also some SIMD functions took from [https://github.com/crossbowerbt/md5/](https://github.com/crossbowerbt/md5/blob/master/md5_sse.c)
+Also some SIMD functions used and changed from [https://github.com/crossbowerbt/md5/](https://github.com/crossbowerbt/md5/blob/master/md5_sse.c)
 
 ## Building
 Simply copy the files in [source/simd](../master/source/simd)
