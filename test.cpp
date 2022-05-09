@@ -54,6 +54,7 @@ bool test_original()
 	}
 }
 
+template<bool length_check = true>
 bool test_simd()
 {
 	const char* text = "The quick brown fox jumps over the lazy dog";
@@ -63,7 +64,7 @@ bool test_simd()
 	const char* arr[4] = { text, text, text, text };
 	uint64_t lengths[4] = { TEST_STRING_LENGTH, TEST_STRING_LENGTH, TEST_STRING_LENGTH, TEST_STRING_LENGTH };
 
-	md5.calculate<4>(arr, lengths);
+	md5.calculate<4, length_check>(arr, lengths);
 
 	[[maybe_unused]] char buf[33];
 	buf[32] = '\0';
@@ -129,6 +130,7 @@ int run_original()
 	}
 }
 
+template<bool length_check = true>
 int run_simd_1x()
 {
 	char* buffers[1];
@@ -160,7 +162,7 @@ int run_simd_1x()
 			index--;
 		}
 
-		md5.calculate<1>(buffers, lengths);
+		md5.calculate<1, length_check>(buffers, lengths);
 
 		if (md5.check_zeroes<RUN_ZERO_COUNT>(0))
 		{
@@ -174,6 +176,7 @@ int run_simd_1x()
 	delete[] buffers[0];
 }
 
+template<bool length_check = true>
 int run_simd_2x()
 {
 	char* buffers[2];
@@ -209,7 +212,7 @@ int run_simd_2x()
 			}
 		}
 
-		md5.calculate<2>(buffers, lengths);
+		md5.calculate<2, length_check>(buffers, lengths);
 
 		for (int buffer_index = 0; buffer_index < 2; buffer_index++)
 		{
@@ -229,6 +232,7 @@ int run_simd_2x()
 	delete[] buffers[1];
 }
 
+template<bool length_check = true>
 int run_simd_4x()
 {
 	char* buffers[4];
@@ -266,7 +270,7 @@ int run_simd_4x()
 			}
 		}
 
-		md5.calculate<4>(buffers, lengths);
+		md5.calculate<4, length_check>(buffers, lengths);
 
 		for (int buffer_index = 0; buffer_index < 4; buffer_index++)
 		{
@@ -291,6 +295,7 @@ int run_simd_4x()
 }
 
 #ifdef USE_256_BITS
+template<bool length_check = true>
 int run_simd_8x()
 {
 	char* buffers[8];
@@ -332,7 +337,7 @@ int run_simd_8x()
 			}
 		}
 
-		md5.calculate<8, false>(buffers, lengths);
+		md5.calculate<8, length_check>(buffers, lengths);
 
 		for (int buffer_index = 0; buffer_index < 8; buffer_index++)
 		{
@@ -385,29 +390,39 @@ double time(int reps, int(*fn)())
 	return t;
 }
 
-int main()
+template<bool length_check = true>
+void do_tests()
 {
+	if (length_check == true)
+	{
+		cout << "Running With Length Checks" << endl;
+	}
+	else
+	{
+		cout << "Running Without Length Checks" << endl;
+	}
+
 	// test for correct hashes
 	bool test_original_result = test_original();
-	bool test_simd_result = test_simd();
+	bool test_simd_result = test_simd<length_check>();
 
 	cout << "test: original => " << (test_original_result ? "succeeded" : "failed") << endl;
 	cout << "test: simd => " << (test_simd_result ? "succeeded" : "failed") << endl;
 
 	if (!test_original_result || !test_simd_result)
 	{
-		return 0;
+		return;
 	}
 
 	cout << endl;
 
 	// test for correct running
 	bool run_original_result = run_original() == RUN_RESULT;
-	bool run_simd_1x_result = run_simd_1x() == RUN_RESULT;
-	bool run_simd_2x_result = run_simd_2x() == RUN_RESULT;
-	bool run_simd_4x_result = run_simd_4x() == RUN_RESULT;
+	bool run_simd_1x_result = run_simd_1x<length_check>() == RUN_RESULT;
+	bool run_simd_2x_result = run_simd_2x<length_check>() == RUN_RESULT;
+	bool run_simd_4x_result = run_simd_4x<length_check>() == RUN_RESULT;
 #ifdef USE_256_BITS
-	bool run_simd_8x_result = run_simd_8x() == RUN_RESULT;
+	bool run_simd_8x_result = run_simd_8x<length_check>() == RUN_RESULT;
 #endif
 
 	cout << "run: original => " << (run_original_result ? "succeeded" : "failed") << endl;
@@ -424,7 +439,7 @@ int main()
 	if (!run_original_result || !run_simd_1x_result || !run_simd_2x_result || !run_simd_4x_result)
 #endif
 	{
-		return 0;
+		return;
 	}
 
 	cout << endl;
@@ -433,13 +448,13 @@ int main()
 	int reps = 500;
 
 	double time_original = time(reps, run_original);
-	double time_simd_1x = time(reps, run_simd_1x);
-	double time_simd_2x = time(reps, run_simd_2x);
-	double time_simd_4x = time(reps, run_simd_4x);
+	double time_simd_1x = time(reps, run_simd_1x<length_check>);
+	double time_simd_2x = time(reps, run_simd_2x<length_check>);
+	double time_simd_4x = time(reps, run_simd_4x<length_check>);
 #ifdef USE_256_BITS
-	double time_simd_8x = time(reps, run_simd_8x);
+	double time_simd_8x = time(reps, run_simd_8x<length_check>);
 #endif
-
+	cout << "With Length Checks" << endl;
 	cout << "time: original => " << fixed << setprecision(3) << time_original << "us" << endl;
 	cout << "time: simd 1x => " << fixed << setprecision(3) << time_simd_1x << "us" << endl;
 	cout << "time: simd 2x => " << fixed << setprecision(3) << time_simd_2x << "us" << endl;
@@ -447,6 +462,18 @@ int main()
 #ifdef USE_256_BITS
 	cout << "time: simd 8x => " << fixed << setprecision(3) << time_simd_8x << "us" << endl;
 #endif
+
+	cout << endl;
+}
+
+int main()
+{
+
+	do_tests<true>();
+
+	cout << endl;
+
+	//do_tests<false>();
 
 	return 0;
 }
