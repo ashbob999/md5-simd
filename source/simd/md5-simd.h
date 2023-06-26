@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <stdexcept>
+#include <cstdint>
 #include <cstring>
 
 #include "simd-functions.h"
